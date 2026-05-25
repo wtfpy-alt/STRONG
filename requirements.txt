@@ -8,3 +8,5 @@ aiofiles
 requests
 bs4
 urllib3
+pyrogram
+tgcrypto
