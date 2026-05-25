@@ -1683,12 +1683,12 @@ Select an option below to get started!
             chat_id=user_id,
             animation="https://media.giphy.com/media/26tn33aiTi1jkl6H6/giphy.gif",
             caption=start_text,
-            parse_mode="Markdown",
+            parse_mode="HTML",
             reply_markup=create_main_menu_keyboard()
         )
     except Exception as e:
         logger.warning(f"Animation send failed: {e}")
-        await msg.reply_text(start_text, parse_mode="Markdown", reply_markup=create_main_menu_keyboard())
+        await msg.reply_text(start_text, parse_mode="HTML", reply_markup=create_main_menu_keyboard())
 
 # ========== CALLBACK QUERY HANDLER FOR INLINE KEYBOARDS ==========
 async def main_callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1717,7 +1717,7 @@ Select an option below:
 """
             await query.edit_message_caption(
                 caption=text,
-                parse_mode="Markdown",
+                parse_mode="HTML",
                 reply_markup=create_main_menu_keyboard()
             )
         
@@ -1736,7 +1736,7 @@ Choose your checking method:
 """
             await query.edit_message_caption(
                 caption=text,
-                parse_mode="Markdown",
+                parse_mode="HTML",
                 reply_markup=create_checker_menu_keyboard()
             )
         
@@ -1768,7 +1768,7 @@ Choose your checking method:
             
             await query.edit_message_caption(
                 caption=text,
-                parse_mode="Markdown",
+                parse_mode="HTML",
                 reply_markup=create_back_button("menu_main")
             )
         
@@ -1789,7 +1789,7 @@ Select a tool:
 """
             await query.edit_message_caption(
                 caption=text,
-                parse_mode="Markdown",
+                parse_mode="HTML",
                 reply_markup=create_tools_menu_keyboard()
             )
         
@@ -1807,7 +1807,7 @@ View detailed statistics:
 """
             await query.edit_message_caption(
                 caption=text,
-                parse_mode="Markdown",
+                parse_mode="HTML",
                 reply_markup=create_stats_keyboard()
             )
         
@@ -1849,7 +1849,7 @@ View detailed statistics:
 """
             await query.edit_message_caption(
                 caption=text,
-                parse_mode="Markdown",
+                parse_mode="HTML",
                 reply_markup=create_back_button("menu_main")
             )
         
@@ -1883,7 +1883,7 @@ Your checks never affect other users!
 """
             await query.edit_message_caption(
                 caption=text,
-                parse_mode="Markdown",
+                parse_mode="HTML",
                 reply_markup=create_back_button("menu_main")
             )
         
@@ -1906,7 +1906,7 @@ Contact admin to modify settings
 """
             await query.edit_message_caption(
                 caption=text,
-                parse_mode="Markdown",
+                parse_mode="HTML",
                 reply_markup=create_back_button("menu_main")
             )
         
@@ -1928,7 +1928,7 @@ Send your card to start checking!
 """
             await query.edit_message_caption(
                 caption=text,
-                parse_mode="Markdown",
+                parse_mode="HTML",
                 reply_markup=create_back_button("menu_checker")
             )
         
@@ -1950,7 +1950,7 @@ Send your card to start checking!
 """
             await query.edit_message_caption(
                 caption=text,
-                parse_mode="Markdown",
+                parse_mode="HTML",
                 reply_markup=create_back_button("menu_checker")
             )
         
@@ -1976,7 +1976,7 @@ Upload your file and reply with /mauth!
 """
             await query.edit_message_caption(
                 caption=text,
-                parse_mode="Markdown",
+                parse_mode="HTML",
                 reply_markup=create_back_button("menu_checker")
             )
         
@@ -2004,7 +2004,7 @@ Upload your file and reply with /mst!
 """
             await query.edit_message_caption(
                 caption=text,
-                parse_mode="Markdown",
+                parse_mode="HTML",
                 reply_markup=create_back_button("menu_checker")
             )
         
@@ -2033,7 +2033,7 @@ Start checking now!
 """
             await query.edit_message_caption(
                 caption=text,
-                parse_mode="Markdown",
+                parse_mode="HTML",
                 reply_markup=create_back_button("menu_checker")
             )
         
@@ -2062,7 +2062,7 @@ Start checking now!
 """
             await query.edit_message_caption(
                 caption=text,
-                parse_mode="Markdown",
+                parse_mode="HTML",
                 reply_markup=create_back_button("menu_checker")
             )
         
@@ -2096,7 +2096,7 @@ Keep checking to improve your stats! 🚀
             
             await query.edit_message_caption(
                 caption=text,
-                parse_mode="Markdown",
+                parse_mode="HTML",
                 reply_markup=create_back_button("menu_stats")
             )
         
@@ -2112,7 +2112,7 @@ Check /help for detailed usage instructions.
 """
             await query.edit_message_caption(
                 caption=text,
-                parse_mode="Markdown",
+                parse_mode="HTML",
                 reply_markup=create_back_button("menu_tools")
             )
         
@@ -2133,7 +2133,7 @@ Admin commands require proper permissions.
 """
             await query.edit_message_caption(
                 caption=text,
-                parse_mode="Markdown",
+                parse_mode="HTML",
                 reply_markup=create_back_button("menu_main")
             )
         
@@ -2185,7 +2185,7 @@ async def sort_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         output_text = "\n".join(sorted(unique_formatted_cards))
 
         if output_text:
-            await msg.reply_text(f"```\n{output_text}\n```", parse_mode='Markdown')
+            await msg.reply_text(f"```\n{output_text}\n```", parse_mode='HTML')
         else:
             await msg.reply_text("No valid cards were found after formatting.")
 
@@ -2618,7 +2618,7 @@ async def shopify_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 ━━━━━━━━━━━━━━━━━━━━
 """
         
-        await checking_msg.edit_text(response_text, parse_mode='Markdown')
+        await checking_msg.edit_text(response_text, parse_mode='HTML')
         
     except Exception as e:
         logger.exception(f"shopify_cmd error: {e}")
@@ -2681,7 +2681,7 @@ async def stripe_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 ━━━━━━━━━━━━━━━━━━━━
 """
         
-        await checking_msg.edit_text(response_text, parse_mode='Markdown')
+        await checking_msg.edit_text(response_text, parse_mode='HTML')
         
     except Exception as e:
         logger.exception(f"stripe_cmd error: {e}")
@@ -2742,7 +2742,7 @@ async def st_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 ━━━━━━━━━━━━━━━━━━━━
 """
         
-        await checking_msg.edit_text(response_text, parse_mode='Markdown')
+        await checking_msg.edit_text(response_text, parse_mode='HTML')
         
     except Exception as e:
         logger.exception(f"st_command error: {e}")
@@ -2838,7 +2838,7 @@ async def process_mass_stripe(update: Update, context: ContextTypes.DEFAULT_TYPE
 ━━━━━━━━━━━━━━━━━━━━
 """
             try:
-                await progress_msg.edit_text(progress_text, parse_mode='Markdown')
+                await progress_msg.edit_text(progress_text, parse_mode='HTML')
             except Exception:
                 pass
             
@@ -2871,7 +2871,7 @@ async def process_mass_stripe(update: Update, context: ContextTypes.DEFAULT_TYPE
 ━━━━━━━━━━━━━━━━━━━━
 """
     
-    await context.bot.send_message(chat_id=msg.chat.id, text=results_text, parse_mode='Markdown')
+    await context.bot.send_message(chat_id=msg.chat.id, text=results_text, parse_mode='HTML')
 
 
 async def mst_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -2984,7 +2984,7 @@ async def shopify2_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 ━━━━━━━━━━━━━━━━━━━━
 """
         
-        await checking_msg.edit_text(response_text, parse_mode='Markdown')
+        await checking_msg.edit_text(response_text, parse_mode='HTML')
         
     except Exception as e:
         logger.exception(f"shopify2_cmd error: {e}")
@@ -3056,7 +3056,7 @@ async def mshopify2_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"🌐 Site: {SHOPIFY2_SITE}\n"
         f"👤 User: @{username}\n\n"
         f"⏳ Starting checks...",
-        parse_mode='Markdown'
+        parse_mode='HTML'
     )
     
     # Deduct credits upfront
@@ -3086,7 +3086,7 @@ async def mshopify2_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     f"✅ Approved: {results['approved']}\n"
                     f"❌ Declined: {results['declined']}\n"
                     f"⚠️ Errors: {results['error']}",
-                    parse_mode='Markdown'
+                    parse_mode='HTML'
                 )
             except:
                 pass
@@ -3251,7 +3251,7 @@ async def mshopify_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"🌐 Site: {site[:40]}...\n"
         f"👤 User: @{username}\n\n"
         f"⏳ Starting checks...",
-        parse_mode='Markdown'
+        parse_mode='HTML'
     )
     
     # Deduct credits upfront
@@ -3281,7 +3281,7 @@ async def mshopify_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     f"✅ Charged: {results['charged']}\n"
                     f"❌ Declined: {results['declined']}\n"
                     f"⚠️ Errors: {results['error']}",
-                    parse_mode='Markdown'
+                    parse_mode='HTML'
                 )
             except:
                 pass
@@ -3889,7 +3889,7 @@ async def process_card_list(update: Update, context: ContextTypes.DEFAULT_TYPE, 
     if proxy_info:
         start_msg += f"\n{proxy_info}"
 
-    await msg.reply_text(start_msg, parse_mode='Markdown')
+    await msg.reply_text(start_msg, parse_mode='HTML')
 
     global CHECKED, TOTAL, CHARGED, ERROR, DECLINED, STOP_CHECKING, DS
     TOTAL = total_cards
@@ -3967,7 +3967,7 @@ async def process_card_list(update: Update, context: ContextTypes.DEFAULT_TYPE, 
             errors += 1
 
         try:
-            await context.bot.send_message(chat_id=msg.chat.id, text=result_text, parse_mode='Markdown')
+            await context.bot.send_message(chat_id=msg.chat.id, text=result_text, parse_mode='HTML')
         except Exception as e:
             logger.warning(f"Failed to send per-card message: {e}")
 
@@ -4116,9 +4116,9 @@ async def update_progress_message(bot, chat_id, message_id, start_time, file_nam
         elapsed = time.time() - start_time
         cpm = (checked / elapsed * 60) if elapsed > 0 else 0.0
         avg_time = (elapsed / checked) if checked else 0.0
-        # Use MarkdownV2 and escape special characters
-        from telegram.helpers import escape_markdown  # Correct import for v20+
-        text = escape_markdown(
+        # Use HTMLV2 and escape special characters
+        from telegram.helpers import escape_HTML  # Correct import for v20+
+        text = escape_HTML(
             f"𝘼𝙐𝙏𝙊⤚𝙨𝙝𝙤𝙥𝙞𝙛𝙮\n"
             f"𝙎𝙏𝘼𝙏𝙐𝙎 ⤏ 𝙍𝙪𝙣𝙣𝙞𝙣𝙜 {frame}\n\n"
             "━━━━━━━━━𝙎𝙏𝘼𝙏𝙎━━━━━━━━━\n"
@@ -4141,7 +4141,7 @@ async def update_progress_message(bot, chat_id, message_id, start_time, file_nam
             version=2
         )
         try:
-            await bot.edit_message_text(text=text, chat_id=chat_id, message_id=message_id, parse_mode="MarkdownV2")
+            await bot.edit_message_text(text=text, chat_id=chat_id, message_id=message_id, parse_mode="HTMLV2")
         except Exception as e:
             logger.warning(f"Failed to update progress message: {e}")
         if checked >= total:
@@ -4231,7 +4231,7 @@ async def process_card_list(update: Update, context: ContextTypes.DEFAULT_TYPE, 
     if proxy_info:
         start_msg += f"\n{proxy_info}"
 
-    await msg.reply_text(start_msg, parse_mode='Markdown')
+    await msg.reply_text(start_msg, parse_mode='HTML')
 
     global CHECKED, TOTAL, CHARGED, ERROR, DECLINED, STOP_CHECKING
     TOTAL = total_cards
@@ -4301,7 +4301,7 @@ async def process_card_list(update: Update, context: ContextTypes.DEFAULT_TYPE, 
             errors += 1
 
         try:
-            await context.bot.send_message(chat_id=msg.chat.id, text=result_text, parse_mode='Markdown')
+            await context.bot.send_message(chat_id=msg.chat.id, text=result_text, parse_mode='HTML')
         except Exception as e:
             logger.warning(f"Failed to send per-card message: {e}")
 
@@ -4334,7 +4334,7 @@ async def process_card_list(update: Update, context: ContextTypes.DEFAULT_TYPE, 
 
     completion_msg += "\n━━━━━━━━━━━━━\nᓀ ᓂ 𝘿𝙚𝙫 ⭆ 𝙏𝙀𝘾𝙃𝙓𝙃𝙐𝘽 ☢"
 
-    await context.bot.send_message(chat_id=msg.chat.id, text=completion_msg, parse_mode='Markdown')
+    await context.bot.send_message(chat_id=msg.chat.id, text=completion_msg, parse_mode='HTML')
 
     STOP_CHECKING = True  # Signal updater to stop (it checks this)
     await asyncio.sleep(1)  # Give updater time to notice
@@ -4345,19 +4345,19 @@ async def add_proxy(update: Update, context: ContextTypes.DEFAULT_TYPE):
     global proxy_list
     msg, _, _, _ = get_msg_user_info(update)
     if not context.args:
-        await msg.reply_text("𝙀𝙣𝙩𝙚𝙧 𝙖 𝙥𝙧𝙤𝙭𝙮 𝙬𝙞𝙩𝙝 𝙞𝙩 ❌\n𝙐𝙨𝙖𝙜𝙚 ⤍ `/addproxy ip:port:user:pass`", parse_mode='Markdown')
+        await msg.reply_text("𝙀𝙣𝙩𝙚𝙧 𝙖 𝙥𝙧𝙤𝙭𝙮 𝙬𝙞𝙩𝙝 𝙞𝙩 ❌\n𝙐𝙨𝙖𝙜𝙚 ⤍ `/addproxy ip:port:user:pass`", parse_mode='HTML')
         return
 
     proxy_string = " ".join(context.args).strip()
     parts = proxy_string.split(':')
     if len(parts) != 4:
-        await msg.reply_text("𝙁𝙤𝙧𝙢𝙖𝙩𝙩 𝙞𝙣𝙫𝙖𝙡𝙞𝙙 \n 𝙐𝙨𝙚 𝙧𝙤𝙩𝙖𝙩𝙞𝙣𝙜 𝙥𝙧𝙤𝙭𝙮 𝙛𝙧𝙤𝙢 𝙒𝙚𝙗𝙨𝙝𝙖𝙧𝙚.𝙞𝙤 ❌\n𝙐𝙨𝙚 ⤍ `/addproxy ip:port:user:pass`", parse_mode='Markdown')
+        await msg.reply_text("𝙁𝙤𝙧𝙢𝙖𝙩𝙩 𝙞𝙣𝙫𝙖𝙡𝙞𝙙 \n 𝙐𝙨𝙚 𝙧𝙤𝙩𝙖𝙩𝙞𝙣𝙜 𝙥𝙧𝙤𝙭𝙮 𝙛𝙧𝙤𝙢 𝙒𝙚𝙗𝙨𝙝𝙖𝙧𝙚.𝙞𝙤 ❌\n𝙐𝙨𝙚 ⤍ `/addproxy ip:port:user:pass`", parse_mode='HTML')
         return
 
     ip, port, user, password = parts
     proxy_url = f"http://{user}:{password}@{ip}:{port}"
     new_proxy = {"http": proxy_url, "https": proxy_url}
-    testing_msg = await msg.reply_text(f"🔍 Testing proxy: `{ip}:{port}`\nPlease wait...", parse_mode='Markdown')
+    testing_msg = await msg.reply_text(f"🔍 Testing proxy: `{ip}:{port}`\nPlease wait...", parse_mode='HTML')
 
     is_working, response_time = await asyncio.to_thread(test_proxy, new_proxy)
 
@@ -4373,7 +4373,7 @@ async def add_proxy(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     f"𝙍𝙚𝙨𝙥𝙤𝙣𝙨𝙚 𝙩𝙞𝙢𝙚 ⭆ `{response_time}ms`\n"
                     f"𝙏𝙤𝙩𝙖𝙡 𝙋𝙧𝙤𝙭𝙮 ⭆ `{len(proxy_list)}`"
                 ),
-                parse_mode='Markdown'
+                parse_mode='HTML'
             )
         except Exception as e:
             logger.warning(f"Failed to edit testing message in add_proxy: {e}")
@@ -4388,7 +4388,7 @@ async def add_proxy(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     f"𝙎𝙩𝙖𝙩𝙪𝙨 ⭙ 𝙉𝙤𝙩 𝙒𝙤𝙧𝙠𝙞𝙣𝙜/𝙏𝙞𝙢𝙚𝙤𝙪𝙩\n\n"
                     f"💡 𝙂𝙚𝙩 𝙍𝙤𝙩𝙖𝙩𝙞𝙣𝙜 𝙋𝙧𝙤𝙭𝙮 𝙁𝙧𝙤𝙢 𝙒𝙚𝙗𝙨𝙝𝙖𝙧𝙚.𝙞𝙤"
                 ),
-                parse_mode='Markdown'
+                parse_mode='HTML'
             )
         except Exception as e:
             logger.warning(f"Failed to edit testing message in add_proxy (fail): {e}")
@@ -4419,7 +4419,7 @@ async def my_proxies(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 chat_id=testing_msg.chat.id,
                 message_id=testing_msg.message_id,
                 text=f"𝘾𝙪𝙧𝙧𝙚𝙣𝙩 𝙋𝙧𝙤𝙭𝙞𝙚𝙨 ⭆ ({len(proxy_list)})**\n\n{proxy_info}",
-                parse_mode='Markdown'
+                parse_mode='HTML'
             )
         except Exception as e:
             logger.warning(f"𝙁𝙖𝙞𝙡𝙚𝙙 𝙩𝙤 𝙚𝙙𝙞𝙩 𝙥𝙧𝙤𝙭𝙮 {e}")
@@ -4570,10 +4570,10 @@ async def st_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     # Edit waiting message
     try:
-        await waiting_msg.edit_text(response_text, parse_mode='Markdown')
+        await waiting_msg.edit_text(response_text, parse_mode='HTML')
     except Exception as e:
         logger.warning(f"Edit failed: {e}")
-        await msg.reply_text(response_text, parse_mode='Markdown')
+        await msg.reply_text(response_text, parse_mode='HTML')
 
 # ---------------- Mass check globals (for progress) ----------------
 CHECKED_ST = 0
@@ -4658,7 +4658,7 @@ async def process_mass_st(update: Update, context: ContextTypes.DEFAULT_TYPE, ca
             
             # Send per-card result (short to avoid spam)
             safe_card = card_details.replace('|', ' | ')
-            await msg.reply_text(f"Card {i+1}: `{safe_card}`\n{response_msg}", parse_mode='Markdown')
+            await msg.reply_text(f"Card {i+1}: `{safe_card}`\n{response_msg}", parse_mode='HTML')
             
         except Exception as e:
             logger.exception(f"Mass check error for {card_details}: {e}")
@@ -4675,7 +4675,7 @@ async def process_mass_st(update: Update, context: ContextTypes.DEFAULT_TYPE, ca
                 f"Progress: {CHECKED_ST}/{total_cards} | "
                 f"Charged: {CHARGED_ST} | Declined: {DECLINED_ST} | Errors: {ERROR_ST}\n"
                 f"Elapsed: {elapsed:.1f}s | Avg: {avg_time:.1f}s/card",
-                parse_mode='Markdown'
+                parse_mode='HTML'
             )
         except Exception as e:
             logger.warning(f"Progress edit failed: {e}")
@@ -4690,7 +4690,7 @@ async def process_mass_st(update: Update, context: ContextTypes.DEFAULT_TYPE, ca
         f"Charged: {successful} 💳 | Declined: {declined} ❌ | Errors: {errors} ⚠️\n"
         f"Total Time: {total_time:.1f}s | Credits Left: {remaining}\n"
         f"File: {os.path.basename(file_name)}",
-        parse_mode='Markdown'
+        parse_mode='HTML'
     )
     STOP_MASS = False
 
@@ -4788,9 +4788,9 @@ async def check_credits(update: Update, context: ContextTypes.DEFAULT_TYPE):
             u = data['users'][user_id_str]
             credits = u.get('credits', 0)
             total_checks = u.get('total_checks', 0)
-            await msg.reply_text(f"💳 𝙔𝙊𝙐𝙍 𝘼𝘾𝘾𝙊𝙐𝙉𝙏\n\n 𝘾𝙧𝙚𝙙𝙞𝙩𝙨 ⭆ {credits}\n 𝙏𝙤𝙩𝙖𝙡 𝘾𝙝𝙚𝙘𝙠𝙨 ⭆ {total_checks}\n\n𝙐𝙨𝙚 /redeem 𝙩𝙤 𝙖𝙙𝙙 𝙢𝙤𝙧𝙚 𝙘𝙧𝙚𝙙𝙞𝙩𝙨!", parse_mode='Markdown')
+            await msg.reply_text(f"💳 𝙔𝙊𝙐𝙍 𝘼𝘾𝘾𝙊𝙐𝙉𝙏\n\n 𝘾𝙧𝙚𝙙𝙞𝙩𝙨 ⭆ {credits}\n 𝙏𝙤𝙩𝙖𝙡 𝘾𝙝𝙚𝙘𝙠𝙨 ⭆ {total_checks}\n\n𝙐𝙨𝙚 /redeem 𝙩𝙤 𝙖𝙙𝙙 𝙢𝙤𝙧𝙚 𝙘𝙧𝙚𝙙𝙞𝙩𝙨!", parse_mode='HTML')
         else:
-            await msg.reply_text("💳 𝘾𝙧𝙚𝙙𝙞𝙩𝙨 ⭆0\n 𝙏𝙤𝙩𝙖𝙡 𝘾𝙝𝙚𝙘𝙠𝙨 ⭆ 0\n\n𝙐𝙨𝙚 /redeem 𝙩𝙤 𝙖𝙙𝙙 𝙘𝙧𝙚𝙙𝙞𝙩𝙨", parse_mode='Markdown')
+            await msg.reply_text("💳 𝘾𝙧𝙚𝙙𝙞𝙩𝙨 ⭆0\n 𝙏𝙤𝙩𝙖𝙡 𝘾𝙝𝙚𝙘𝙠𝙨 ⭆ 0\n\n𝙐𝙨𝙚 /redeem 𝙩𝙤 𝙖𝙙𝙙 𝙘𝙧𝙚𝙙𝙞𝙩𝙨", parse_mode='HTML')
     except Exception as e:
         logger.warning(f"check_credits failed: {e}")
         await msg.reply_text("Could not load your credits data.")
@@ -4847,7 +4847,7 @@ async def generate_gift(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
 
         code = generate_gift_code(credits, user_id)
-        await msg.reply_text(f"𝙂𝙚𝙣𝙚𝙧𝙖𝙩𝙚𝙙 𝙎𝙪𝙘𝙘𝙚𝙨𝙨 ⭐\n\n 𝘾𝙤𝙙𝙚 ⭆ `{code}`\n 𝘾𝙧𝙚𝙙𝙞𝙩𝙨 ⭆ {credits}\n\n 𝙎𝙝𝙖𝙧𝙚 𝙩𝙤 𝙐𝙨𝙚𝙧𝙨 ⭛", parse_mode='Markdown')
+        await msg.reply_text(f"𝙂𝙚𝙣𝙚𝙧𝙖𝙩𝙚𝙙 𝙎𝙪𝙘𝙘𝙚𝙨𝙨 ⭐\n\n 𝘾𝙤𝙙𝙚 ⭆ `{code}`\n 𝘾𝙧𝙚𝙙𝙞𝙩𝙨 ⭆ {credits}\n\n 𝙎𝙝𝙖𝙧𝙚 𝙩𝙤 𝙐𝙨𝙚𝙧𝙨 ⭛", parse_mode='HTML')
     except ValueError:
         await msg.reply_text("❌ 𝙞𝙣𝙫𝙖𝙡𝙞𝙙 𝙖𝙢𝙤𝙪𝙣𝙩")
     except Exception as e:
@@ -4914,9 +4914,9 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     if query.data == "opt1":
-        await query.edit_message_text("⚡ *Selected CHARGE-GATES* ⚡\nUpload a TXT file and reply with /st to start.", parse_mode="Markdown")
+        await query.edit_message_text("⚡ *Selected CHARGE-GATES* ⚡\nUpload a TXT file and reply with /st to start.", parse_mode="HTML")
     elif query.data == "opt2":
-        await query.edit_message_text("💳 *Selected FREE-GATES* 💳\nUpload a TXT file and reply with /st to start.", parse_mode="Markdown")
+        await query.edit_message_text("💳 *Selected FREE-GATES* 💳\nUpload a TXT file and reply with /st to start.", parse_mode="HTML")
         
         
 async def add_credits_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -5008,7 +5008,7 @@ async def show_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         await msg.reply_text(
             stats_text, 
-            parse_mode='Markdown',
+            parse_mode='HTML',
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
     except Exception as e:
@@ -5062,7 +5062,7 @@ async def show_leaderboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         await msg.reply_text(
             leaderboard_text,
-            parse_mode='Markdown',
+            parse_mode='HTML',
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
         
@@ -5231,7 +5231,7 @@ async def cmd_bin(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"Bank: *{info.get('bank','UNKNOWN')}*\n"
             f"Country: *{info.get('country','UNKNOWN')}*"
         )
-        await update.message.reply_text(msg, parse_mode='Markdown')
+        await update.message.reply_text(msg, parse_mode='HTML')
     except Exception as e:
         await update.message.reply_text(f"Failed to lookup BIN: {e}")
         
@@ -6099,7 +6099,7 @@ async def bk_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if len(result) > 4000:
         result = result[:4000] + "\n...[truncated]"
     
-    await update.message.reply_text(f"```\n{result}\n```", parse_mode="Markdown")
+    await update.message.reply_text(f"```\n{result}\n```", parse_mode="HTML")
 
 
 #News Bc
@@ -7746,10 +7746,10 @@ CC_PATTERN = re.compile(
 # -----------------------------------------------------
 async def split_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message.reply_to_message or not update.message.reply_to_message.document:
-        return await update.message.reply_text("❌ *Reply to a text file!*\nUsage: /split <lines>", parse_mode="Markdown")
+        return await update.message.reply_text("❌ *Reply to a text file!*\nUsage: /split <lines>", parse_mode="HTML")
 
     if len(context.args) != 1 or not context.args[0].isdigit():
-        return await update.message.reply_text("❌ Usage: /split <lines_per_file>", parse_mode="Markdown")
+        return await update.message.reply_text("❌ Usage: /split <lines_per_file>", parse_mode="HTML")
 
     lines_per_file = int(context.args[0])
     file = await update.message.reply_to_message.document.get_file()
@@ -7763,7 +7763,7 @@ async def split_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"📤 *Splitting File...*\n"
         f"Total Lines: {total}\n"
         f"Parts: {parts}",
-        parse_mode="Markdown"
+        parse_mode="HTML"
     )
 
     for i in range(parts):
@@ -7772,7 +7772,7 @@ async def split_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         buf.name = f"part_{i+1}.txt"
         await update.message.reply_document(InputFile(buf))
 
-    await update.message.reply_text("✅ *Done!* All parts sent.", parse_mode="Markdown")
+    await update.message.reply_text("✅ *Done!* All parts sent.", parse_mode="HTML")
 
 
 # -------------------------------------------------------------------
@@ -7780,7 +7780,7 @@ async def split_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # -------------------------------------------------------------------
 async def sortf_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message.reply_to_message or not update.message.reply_to_message.document:
-        return await update.message.reply_text("❌ *Reply to a file containing CC!*", parse_mode="Markdown")
+        return await update.message.reply_text("❌ *Reply to a file containing CC!*", parse_mode="HTML")
 
     file = await update.message.reply_to_message.document.get_file()
     content = (await file.download_as_bytearray()).decode("utf-8", errors="ignore")
@@ -7814,7 +7814,7 @@ async def sortf_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"> Unique CC: {len(unique)}\n"
         f"> Duplicates Removed: {duplicates_removed}\n\n"
         f"📄 Clean file generated below.",
-        parse_mode="Markdown"
+        parse_mode="HTML"
     )
 
     await update.message.reply_document(InputFile(buf))
@@ -7911,7 +7911,7 @@ async def auth_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "❌ **Insufficient Credits!**\n\n"
             "You need at least 1 credit to check a card.\n"
             "Use /redeem to add credits or contact admin.",
-            parse_mode="Markdown"
+            parse_mode="HTML"
         )
         return
 
@@ -7929,7 +7929,7 @@ async def auth_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 **Example:**
 `/auth 4532015112830366|12|2025|123`
 """
-        await update.message.reply_text(help_text, parse_mode="Markdown")
+        await update.message.reply_text(help_text, parse_mode="HTML")
         return
 
     cc = " ".join(context.args)
@@ -7940,7 +7940,7 @@ async def auth_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"{animation_frames[0]} **Initializing AUTH Check...**\n\n"
         f"💳 Card: `{cc[:6]}...{cc[-4:]}`\n"
         f"⏳ Status: Processing",
-        parse_mode="Markdown"
+        parse_mode="HTML"
     )
     
     # Animate while processing
@@ -7955,7 +7955,7 @@ async def auth_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     f"💳 Card: `{cc[:6]}...{cc[-4:]}`\n"
                     f"⏳ Gateway: Stripe AUTH\n"
                     f"🔄 Processing...",
-                    parse_mode="Markdown"
+                    parse_mode="HTML"
                 )
                 frame_idx += 1
                 await asyncio.sleep(0.5)
@@ -8020,7 +8020,7 @@ async def auth_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if remaining_credits > 0:
             result_text += f"\n{format_progress_bar(100 - remaining_credits, 100, 15)}"
         
-        await msg.edit_text(result_text, parse_mode="Markdown")
+        await msg.edit_text(result_text, parse_mode="HTML")
         
     except Exception as e:
         animation_task.cancel()
@@ -8029,7 +8029,7 @@ async def auth_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"❌ **Check Failed!**\n\n"
             f"Error: {str(e)}\n\n"
             f"Please try again or contact support.",
-            parse_mode="Markdown"
+            parse_mode="HTML"
         )
 
 
@@ -8048,7 +8048,7 @@ async def charge_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "❌ **Insufficient Credits!**\n\n"
             "You need at least 1 credit to check a card.\n"
             "Use /redeem to add credits or contact admin.",
-            parse_mode="Markdown"
+            parse_mode="HTML"
         )
         return
 
@@ -8066,7 +8066,7 @@ async def charge_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 **Example:**
 `/charge 4532015112830366|12|2025|123`
 """
-        await update.message.reply_text(help_text, parse_mode="Markdown")
+        await update.message.reply_text(help_text, parse_mode="HTML")
         return
 
     cc = " ".join(context.args)
@@ -8077,7 +8077,7 @@ async def charge_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"{animation_frames[0]} **Initializing CHARGE Check...**\n\n"
         f"💳 Card: `{cc[:6]}...{cc[-4:]}`\n"
         f"⏳ Status: Processing",
-        parse_mode="Markdown"
+        parse_mode="HTML"
     )
     
     # Animate while processing
@@ -8092,7 +8092,7 @@ async def charge_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     f"💳 Card: `{cc[:6]}...{cc[-4:]}`\n"
                     f"⏳ Gateway: Stripe CHARGE\n"
                     f"💰 Processing Payment...",
-                    parse_mode="Markdown"
+                    parse_mode="HTML"
                 )
                 frame_idx += 1
                 await asyncio.sleep(0.4)
@@ -8150,7 +8150,7 @@ async def charge_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 ━━━━━━━━━━━━━━━━━━━━
 """
         
-        await msg.edit_text(result_text, parse_mode="Markdown")
+        await msg.edit_text(result_text, parse_mode="HTML")
         
     except Exception as e:
         animation_task.cancel()
@@ -8159,7 +8159,7 @@ async def charge_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"❌ **Check Failed!**\n\n"
             f"Error: {str(e)}\n\n"
             f"Please try again or contact support.",
-            parse_mode="Markdown"
+            parse_mode="HTML"
         )
 
 
@@ -8188,7 +8188,7 @@ async def mcharge_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 "• `4532xxx|12|2025|123`\n"
                 "• `4532xxx 12 2025 123`\n"
                 "• Any mixed format - auto-detected!",
-                parse_mode="Markdown"
+                parse_mode="HTML"
             )
             return
         
@@ -8228,7 +8228,7 @@ Upload .txt file and reply with `/mcharge`
 **Example:**
 `/mcharge 4532xxx|12|25|123 4916xxx|01|26|456`
 """
-            await update.message.reply_text(help_text, parse_mode="Markdown")
+            await update.message.reply_text(help_text, parse_mode="HTML")
             return
         
         total_cards = len(cards)
@@ -8254,7 +8254,7 @@ Upload .txt file and reply with `/mcharge`
 
 **Cost:** 1 credit per card
 """
-        await update.message.reply_text(help_text, parse_mode="Markdown")
+        await update.message.reply_text(help_text, parse_mode="HTML")
         return
     
     # Check credits
@@ -8267,7 +8267,7 @@ Upload .txt file and reply with `/mcharge`
             f"💳 Available: `{credits}` credits\n"
             f"❗ Missing: `{total_cards - credits}` credits\n\n"
             f"Use /redeem to add more credits.",
-            parse_mode="Markdown"
+            parse_mode="HTML"
         )
         return
     
@@ -8278,7 +8278,7 @@ Upload .txt file and reply with `/mcharge`
         f"🤖 Format: Auto-detected\n"
         f"⏳ Status: Initializing...\n"
         f"{format_progress_bar(0, total_cards, 15)}",
-        parse_mode="Markdown"
+        parse_mode="HTML"
     )
     
     results = []
@@ -8304,7 +8304,7 @@ Upload .txt file and reply with `/mcharge`
                         f"⚠️ Errors: {errors}\n\n"
                         f"{format_progress_bar(idx, total_cards, 15)}\n\n"
                         f"💳 Checking: `{card[:6]}...{card[-4:]}`",
-                        parse_mode="Markdown"
+                        parse_mode="HTML"
                     )
                     last_update = asyncio.get_event_loop().time()
                 except Exception:
@@ -8411,7 +8411,7 @@ User: {username}
 📄 **Detailed results file sent below.**
 """
     
-    await progress_msg.edit_text(summary, parse_mode="Markdown")
+    await progress_msg.edit_text(summary, parse_mode="HTML")
     
     try:
         await update.message.reply_document(
@@ -8460,7 +8460,7 @@ async def mauth_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 💡 **Tip:** Any format works! The bot will auto-detect and parse cards.
 """
-        await update.message.reply_text(help_text, parse_mode="Markdown")
+        await update.message.reply_text(help_text, parse_mode="HTML")
         return
 
     # Download and parse file
@@ -8478,7 +8478,7 @@ async def mauth_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "• `4532xxx|12|2025|123`\n"
             "• `4532xxx 12 2025 123`\n"
             "• `Card: 4532xxx, Exp: 12/25, CVV: 123`",
-            parse_mode="Markdown"
+            parse_mode="HTML"
         )
         return
     
@@ -8494,7 +8494,7 @@ async def mauth_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"💳 Available: `{credits}` credits\n"
             f"❗ Missing: `{total_cards - credits}` credits\n\n"
             f"Use /redeem to add more credits.",
-            parse_mode="Markdown"
+            parse_mode="HTML"
         )
         return
     
@@ -8506,7 +8506,7 @@ async def mauth_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"🤖 Format: Auto-detected\n"
         f"💰 Cost: `{total_cards}` credits\n\n"
         f"⏳ Starting mass check...",
-        parse_mode="Markdown"
+        parse_mode="HTML"
     )
     
     await asyncio.sleep(1)
@@ -8517,7 +8517,7 @@ async def mauth_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"📊 Total Cards: `{total_cards}`\n"
         f"⏳ Status: Processing...\n"
         f"{format_progress_bar(0, total_cards, 15)}",
-        parse_mode="Markdown"
+        parse_mode="HTML"
     )
     
     results = []
@@ -8549,7 +8549,7 @@ async def mauth_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
                         f"⚠️ Errors: {errors}\n\n"
                         f"{format_progress_bar(i, total_cards, 15)}\n\n"
                         f"⏱️ ETA: {((total_cards - i) * 0.5):.0f}s",
-                        parse_mode="Markdown"
+                        parse_mode="HTML"
                     )
                     last_update = asyncio.get_event_loop().time()
                 except Exception:
@@ -8651,13 +8651,13 @@ User: {username}
 📄 **Detailed results file sent below.**
 """
     
-    await progress_msg.edit_text(summary, parse_mode="Markdown")
+    await progress_msg.edit_text(summary, parse_mode="HTML")
     
     try:
         await update.message.reply_document(
             document=buf,
             caption="📄 **Detailed Results** (Organized by status)",
-            parse_mode="Markdown"
+            parse_mode="HTML"
         )
     except Exception as e:
         logger.exception(f"Failed to send results file: {e}")
