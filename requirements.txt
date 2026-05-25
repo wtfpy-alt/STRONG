@@ -5,7 +5,7 @@ aiogram
 python-telegram-bot
 aiohttp
 aiofiles
-random
 requests
 bs4
-base64
+urllib3
+urllib
