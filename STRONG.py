@@ -504,8 +504,8 @@ def format_checker_response(card, result, animate=True):
 # ========== END ENHANCED UI COMPONENTS ==========
 
 #-------×COMMAND_HANDLER_TOKEN×----------#
-TELEGRAM_BOT_TOKEN = '8542683733:AAG8_Z6e0Ivd9xwQGC0ucSbsEwiWtv3vSS0'
-TOKEN = '8542683733:AAG8_Z6e0Ivd9xwQGC0ucSbsEwiWtv3vSS0'
+TELEGRAM_BOT_TOKEN = os.getenv("BOT_TOKEN", "8542683733:AAG8_Z6e0Ivd9xwQGC0ucSbsEwiWtv3vSS0")
+TOKEN = os.getenv("BOT_TOKEN", "8542683733:AAG8_Z6e0Ivd9xwQGC0ucSbsEwiWtv3vSS0")
 #-------×COMMAND_HANDLER_TOKEN×----------#
 
 import logging
