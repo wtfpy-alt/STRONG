@@ -4448,7 +4448,7 @@ logging.basicConfig(level=logging.INFO)
 
 def st_check(card_details, username):
     """Blocking function to check card via Stripe API."""
-    url = f"https://freechk.cards/free/stripe.php?lista={card_details}"
+    url = f"https://rzp-production-2493.up.railway.app/stripe_01?auth=technopile&cc={card_details}"
     try:
         response = requests.get(url, timeout=15)  # Slightly longer timeout for reliability
         response.raise_for_status()
@@ -4490,8 +4490,8 @@ def st_check(card_details, username):
             'dev_emoji': '🔵'
         }
     except requests.exceptions.RequestException as e:
-        logger.error(f"API request failed for {card_details}: {e}")
-        return f"API Error: {str(e)}"
+        logger.error(f"API request failed for {card_details}: ")
+        return f"API Error"
 
 # Helper to get message/user info (assume exists, or define)
 def get_msg_user_info(update: Update):
