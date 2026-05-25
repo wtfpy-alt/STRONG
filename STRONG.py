@@ -230,7 +230,7 @@ async def save_user_db(db: Dict[str, Any]):
     await save_json_atomic(USER_DB_FILE, db)
         
 #---------×BOT_INSTALLATION×-------------#
-BOT_TOKEN = '8542683733:AAG8_Z6e0Ivd9xwQGC0ucSbsEwiWtv3vSS0'
+BOT_TOKEN = os.getenv("BOT_TOKEN", "8542683733:AAG8_Z6e0Ivd9xwQGC0ucSbsEwiWtv3vSS0")
 #--------×BOT_INSTALLATION×----------#
 
 # ========== INTELLIGENT CARD PARSER ==========
