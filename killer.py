@@ -6,6 +6,7 @@ import time
 import asyncio
 import aiohttp
 from urllib.parse import quote
+from api_fastapi import check_card
 
 session = requests.Session()
 

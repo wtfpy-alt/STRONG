@@ -11,3 +11,8 @@ urllib3
 pyrogram
 tgcrypto
 telebot
+fastapi
+uvicorn
+pydantic
+colorama
+faker
