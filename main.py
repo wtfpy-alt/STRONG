@@ -47,7 +47,7 @@ UNCOMMON_LAST_NAMES = [
 
 # Rate limiter - track user check times (user_id: timestamp)
 user_check_times = {}
-RATE_LIMIT_SECONDS = 5  # Minimum 5 seconds between checks per user
+RATE_LIMIT_SECONDS = 15  # Minimum 5 seconds between checks per user
 
 
 # Request/Response Models
@@ -249,7 +249,7 @@ def parse_response(card, text_paypal, fake):
         }
     }
 
-async def check_card(card: dict):
+async def check_card_paypal(card: dict):
     """Process a single card check"""
     try:
         time.sleep(random.randint(1, 3))
@@ -290,22 +290,22 @@ async def check_card(card: dict):
 
 
 # API Endpoints
-@app.post("/paypal", response_model=CheckResponse)
+@app.get("/paypal", response_model=CheckResponse)
 async def paypal_single(card: CardRequest):
     """Check a single card - processes sequentially to avoid overlapping"""
     try:
-        result = await paypal(card.model_dump())
+        result = await check_card_paypal(card.model_dump())
         return CheckResponse(**result)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/paypal_mass")
+@app.get("/paypal_mass")
 async def check_batch(cards: list[CardRequest]):
     """Check multiple cards - queued to process without overlapping"""
     results = []
     
     for card in cards:
-        result = await paypal(card.model_dump())
+        result = await check_card_paypal(card.model_dump())
         results.append(result)
         time.sleep(random.randint(6, 10))  # Delay between checks
     
@@ -330,9 +330,9 @@ async def root():
         "name": "Card Checker API",
         "version": "1.0.0",
         "endpoints": {
-            "check": "POST /check - Check a single card",
+            "check": "GET /paypal - Check a single card",
             "killer": "GET /kill",
-            "check_batch": "POST /check-batch - Check multiple cards",
+            "check_batch": "GET /paypal_mass - Check multiple cards",
             "health": "GET /health - Health check",
             "docs": "GET /docs - Interactive API documentation"
         }
@@ -541,8 +541,6 @@ CHECKER_API_URL = 'https://autoshopify-production-e4f6.up.railway.app'
 
 KILLER_API = 'https://strong-production.up.railway.app/kill'
 
-KILLER_ALLOWED_USERS = {}
-
 OWNER_ID = 6127646960
 
 PREMIUM_EMOJI_IDS = {
@@ -570,6 +568,9 @@ PREMIUM_EMOJI_IDS = {
     "⚠️": "5420323339723881652",   # ⚠️ Red Warning Triangle
     "💎": "6023660820544623088",   # ✨
 }
+    
+
+
 
 def premium_emoji(text):
     """Replace Unicode emojis with <tg-emoji emoji-id="..."> for Premium custom emojis.
@@ -933,6 +934,8 @@ async def test_proxy(proxy):
             return {'proxy': proxy, 'status': 'alive'}
     except:
         return {'proxy': proxy, 'status': 'dead'}
+    
+
 @bot.on(events.NewMessage(pattern='/start'))
 async def start(event):
     await event.reply(
@@ -961,6 +964,362 @@ async def start(event):
     )
 
 
+import json
+import random
+import os
+
+
+KEYS_FILE = "keys.json"
+
+
+def load_keys():
+
+    if not os.path.exists(KEYS_FILE):
+        with open(KEYS_FILE, "w") as f:
+            json.dump([], f)
+
+    with open(KEYS_FILE, "r") as f:
+
+        try:
+            return json.load(f)
+
+        except:
+            return []
+
+
+def save_keys(data):
+
+    with open(KEYS_FILE, "w") as f:
+        json.dump(data, f, indent=4)
+
+
+def KILLER_KEYS_ADD(key: str, credits: int):
+
+    data = load_keys()
+
+    new_key = {
+        "key": key,
+        "credits": credits,
+        "is_used": False
+    }
+
+    data.append(new_key)
+
+    save_keys(data)
+
+    return {
+        "status": "success",
+        "key": key,
+        "credits": credits,
+        "message": "Key added successfully"
+    }
+
+
+def KILLER_KEYS_USE(key: str):
+
+    data = load_keys()
+
+    for item in data:
+
+        if item["key"] == key and not item["is_used"]:
+
+            item["is_used"] = True
+
+            save_keys(data)
+
+            return item["credits"]
+
+    return None
+
+
+def KILLER_KEYS_MAKE(credits: int):
+
+    key = ''.join(
+        random.choices(
+            'ABCDEFGHJKLMNPQRSTUVWXYZ23456789',
+            k=10
+        )
+    )
+
+    KILLER_KEYS_ADD(key, credits)
+
+    return key
+
+
+
+
+@bot.on(events.NewMessage(pattern=r'/key'))
+async def create_key(event):
+
+    user_id = event.sender_id
+
+    if user_id != OWNER_ID:
+
+        await event.reply(
+            premium_emoji(
+                "❌ <b>Access Denied</b>\n\n"
+                "Only owner can allow users to use killer"
+            ),
+            parse_mode='html'
+        )
+
+        return
+
+    parts = event.message.text.split()
+
+    if len(parts) != 2:
+
+        await event.reply(
+            premium_emoji(
+                "❌ <b>USAGE:</b>\n\n"
+                "/key (credits)"
+            ),
+            parse_mode='html'
+        )
+
+        return
+
+    try:
+        credits = int(parts[1])
+
+    except:
+
+        await event.reply(
+            premium_emoji(
+                "❌ Invalid credits amount"
+            ),
+            parse_mode='html'
+        )
+
+        return
+
+    key = KILLER_KEYS_MAKE(credits)
+
+    await event.reply(
+
+        premium_emoji(
+
+            f"<b>⚡💳 ㅤ#KEYS 💳⚡</b>\n"
+            f"<b>━━━━━━━━━━━━━━━━━</b>\n"
+            f"<b>⚡💠 Generated</b>\n"
+            f"<blockquote>💳 KEY: <code>{key}</code></blockquote>\n"
+            f"<blockquote>💠 Credits: {credits}</blockquote>\n"
+            f"<b>━━━━━━━━━━━━━━━━━</b>"
+
+        ),
+
+        parse_mode='html'
+    )
+
+
+def add_credits(user_id, credits):
+
+    users = load_users()
+
+    if str(user_id) not in users:
+        users[str(user_id)] = {"credits": 0}
+
+    users[str(user_id)]["credits"] += credits
+
+    save_users(users)
+
+
+@bot.on(events.NewMessage(pattern=r'/redeem'))
+async def redeem_key(event):
+
+    user_id = event.sender_id
+
+    parts = event.message.text.split()
+
+    if len(parts) != 2:
+
+        await event.reply(
+            premium_emoji(
+                "❌ <b>USAGE:</b>\n\n"
+                "/redeem YOUR_KEY"
+            ),
+            parse_mode='html'
+        )
+
+        return
+
+    key = parts[1].strip().upper()
+
+    data = load_keys()
+
+    for item in data:
+
+        if item["key"] == key:
+
+            if item["is_used"]:
+
+                await event.reply(
+                    premium_emoji(
+                        "❌ <b>Key Already Redeemed</b>"
+                    ),
+                    parse_mode='html'
+                )
+
+                return
+
+            item["is_used"] = True
+
+            save_keys(data)
+
+            credits = item["credits"]
+
+            # ADD USER CREDITS HERE
+            # Example:
+            # USERS[user_id]["credits"] += credits
+
+            add_credits(user_id, credits)
+
+            await event.reply(
+
+                premium_emoji(
+
+                    f"<b>⚡💳 #REDEEMED 💳⚡</b>\n"
+                    f"<b>━━━━━━━━━━━━━━━━━</b>\n"
+                    f"<blockquote>✅ Key Redeemed Successfully</blockquote>\n"
+                    f"<blockquote>💠 Credits Added: {credits}</blockquote>\n"
+                    f"<blockquote>👤 User ID: <code>{user_id}</code></blockquote>\n"
+                    f"<b>━━━━━━━━━━━━━━━━━</b>"
+
+                ),
+
+                parse_mode='html'
+            )
+
+            return
+
+    await event.reply(
+
+        premium_emoji(
+            "❌ <b>Invalid Key</b>"
+        ),
+
+        parse_mode='html'
+    )
+
+import json
+import os
+
+USERS_FILE = "users.json"
+
+
+def load_users():
+
+    if not os.path.exists(USERS_FILE):
+
+        with open(USERS_FILE, "w") as f:
+            json.dump({}, f)
+
+    with open(USERS_FILE, "r") as f:
+
+        try:
+            return json.load(f)
+
+        except:
+            return {}
+
+
+def save_users(users):
+
+    with open(USERS_FILE, "w") as f:
+        json.dump(users, f, indent=4)
+
+
+def deduct_credit(user_id):
+
+    users = load_users()
+
+    if str(user_id) not in users:
+        return False, 0
+
+    credits = users[str(user_id)]["credits"]
+
+    if credits <= 0:
+        return False, 0
+
+    users[str(user_id)]["credits"] -= 1
+
+    save_users(users)
+
+    return True, users[str(user_id)]["credits"]
+
+
+import json
+import os
+
+
+USERS_FILE = "killer_allowed_users.json"
+
+
+def load_users():
+
+    if not os.path.exists(USERS_FILE):
+
+        with open(USERS_FILE, "w") as f:
+            json.dump({}, f)
+
+    with open(USERS_FILE, "r") as f:
+
+        try:
+            return json.load(f)
+
+        except:
+            return {}
+
+
+def save_users(data):
+
+    with open(USERS_FILE, "w") as f:
+        json.dump(data, f, indent=4)
+
+
+def KILLER_ALLOWED_USERS(user_id: int):
+
+    data = load_users()
+
+    return str(user_id) in data
+
+
+def GET_USER_CREDITS(user_id: int):
+
+    data = load_users()
+
+    return data.get(str(user_id), {}).get("credits", 0)
+
+
+def ADD_USER(user_id: int, credits: int):
+
+    data = load_users()
+
+    data[str(user_id)] = {
+        "credits": credits
+    }
+
+    save_users(data)
+
+
+def REMOVE_CREDIT(user_id: int):
+
+    data = load_users()
+
+    uid = str(user_id)
+
+    if uid not in data:
+        return False
+
+    if data[uid]["credits"] <= 0:
+        return False
+
+    data[uid]["credits"] -= 1
+
+    save_users(data)
+
+    return True
+
 
 #kill command
 @bot.on(events.NewMessage(pattern=r'/kill'))
@@ -968,25 +1327,51 @@ async def kill(event):
 
     user_id = event.sender_id
 
-    if not user_id in KILLER_ALLOWED_USERS:
+    if not KILLER_ALLOWED_USERS(user_id):
 
-        await event.reply(premium_emoji("❌ <b>Access Denied</b>\n\nOnly Allowed users could use killer"), parse_mode='html')
+        await event.reply(
+            premium_emoji(
+                "❌ <b>Access Denied</b>\n\n"
+                "Only allowed users can use killer"
+            ),
+            parse_mode='html'
+        )
+
         return
-    
-    if not len(event.message.text.split()) == 2:
-        await event.reply(premium_emoji("❌ <b>Invalid Command</b>\n\nUse: <code>/kill card|mm|yy|cvv</code>"), parse_mode='html')
+
+    parts = event.message.text.strip().split(maxsplit=1)
+
+    if len(parts) < 2:
+
+        await event.reply(
+            premium_emoji(
+                "❌ <b>Invalid Command</b>\n\n"
+                "Use: <code>/kill card|mm|yy|cvv</code>"
+            ),
+            parse_mode='html'
+        )
+
         return
-    
-    cc_input = event.message.text.split(' ', 1)[1].strip()
+
+    cc_input = parts[1].strip()
+
     cards = extract_cc(cc_input)
 
     if not cards:
-        await event.reply(premium_emoji("❌ Invalid CC format. Use: <code>/kill card|mm|yy|cvv</code>"), parse_mode='html')
+
+        await event.reply(
+            premium_emoji(
+                "❌ Invalid CC format.\n\n"
+                "Use: <code>/kill card|mm|yy|cvv</code>"
+            ),
+            parse_mode='html'
+        )
+
         return
     
 
     card = cards[0]
-    current_date = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+  
 
     status_msg = await event.reply(
         premium_emoji(
@@ -999,8 +1384,12 @@ async def kill(event):
         parse_mode='html'
     )
 
+    deduct_credit(user_id)
+    
+
     try:
         result = session.get(KILLER_API, params={'cc': card}, timeout=30).json()
+
 
         brand, bin_type, level, bank, country, flag = await get_bin_info(card.split('|')[0])
 
@@ -1008,22 +1397,26 @@ async def kill(event):
             status_emoji = "✅"
             status_text = "𝐊𝐢𝐥𝐥𝐞𝐝"
 
+        else:
+            status_emoji = "❌"
+            status_text = "Kill Failed, try again"
+
 
         final_resp = f"""<b>⚡💳 ㅤ#𝒮𝒽𝑜𝓅𝒾𝒾𝒾  💳⚡</b>
-<b>━━━━━━━━━━━━━━━━━</b>
-<b>⚡💠 𝐑𝐞𝐬𝐮𝐥𝐭𝐬</b>
-<blockquote>{status_emoji} Status: {status_text}</blockquote>
-<blockquote>💳 Card: <code>{result['card']}</code></blockquote>
-<blockquote>📝 Response: {result['message'][:150]}</blockquote>
+                        <b>━━━━━━━━━━━━━━━━━</b>
+                        <b>⚡💠 𝐑𝐞𝐬𝐮𝐥𝐭𝐬</b>
+                        <blockquote>{status_emoji} Status: {status_text}</blockquote>
+                        <blockquote>💳 Card: <code>{result['card']}</code></blockquote>
+                        <blockquote>📝 Response: {result['message'][:150]}</blockquote>
 
-<b>━━━━━━━━━━━━━━━━━</b>
-<b>🎯💠 𝐁𝐈𝐍 𝐈𝐧𝐟𝐨</b>
-<pre>𝗕𝗜𝗡 𝗜𝗻𝗳𝗼: {brand} - {bin_type} - {level}
-𝗕𝗮𝗻𝗸: {bank}
-𝗖𝗼𝘂𝗻𝘁𝗿𝘆: {country} {flag}</pre>
-<b>━━━━━━━━━━━━━━━━━</b>
+                        <b>━━━━━━━━━━━━━━━━━</b>
+                        <b>🎯💠 𝐁𝐈𝐍 𝐈𝐧𝐟𝐨</b>
+                        <pre>𝗕𝗜𝗡 𝗜𝗻𝗳𝗼: {brand} - {bin_type} - {level}
+                        𝗕𝗮𝗻𝗸: {bank}
+                        𝗖𝗼𝘂𝗻𝘁𝗿𝘆: {country} {flag}</pre>
+                        <b>━━━━━━━━━━━━━━━━━</b>
 
-🤖 <b>Bot By: @technopile </a></b>"""
+                        🤖 <b>Bot By: @technopile </a></b>"""
 
         await status_msg.edit(premium_emoji(final_resp), parse_mode='html')
 
@@ -1032,58 +1425,196 @@ async def kill(event):
 
     
 
-#allow users to use killer command
 @bot.on(events.NewMessage(pattern=r'/allowkill'))
 async def allow_kill(event):
 
-    user_id = event.sender_id
+    owner_id = event.sender_id
 
-    if not user_id == OWNER_ID:
-        
-        await event.reply(premium_emoji("❌ <b>Access Denied</b>\n\nOnly owner can allow users to use killer"), parse_mode='html')
+    if owner_id != OWNER_ID:
+
+        await event.reply(
+            premium_emoji(
+                "❌ <b>Access Denied</b>\n\n"
+                "Only owner can allow users to use killer"
+            ),
+            parse_mode='html'
+        )
+
         return
-    
-    if not len(event.message.text.split()) == 2:
-        await event.reply(premium_emoji("❌ <b>Invalid Command</b>\n\nUse: /allowkill (userid)"), parse_mode='html')
+
+    parts = event.message.text.strip().split()
+
+    if len(parts) != 3:
+
+        await event.reply(
+            premium_emoji(
+                "❌ <b>Invalid Command</b>\n\n"
+                "Use: /allowkill userid credits"
+            ),
+            parse_mode='html'
+        )
+
         return
 
-    if not user_id in KILLER_ALLOWED_USERS:
-        
-        user_id = int(event.message.text.split()[1])
+    try:
 
-        KILLER_ALLOWED_USERS[user_id] = True
-        await event.reply(premium_emoji("✅ <b>User Allowed</b>\n\nThis user can now use killer command"), parse_mode='html')
+        target_user = int(parts[1])
+        credits = int(parts[2])
 
-    
-    else:
-        await event.reply(premium_emoji("⚠️ <b>User Already Allowed</b>"), parse_mode='html')
+    except:
+
+        await event.reply(
+            premium_emoji(
+                "❌ Invalid user id or credits"
+            ),
+            parse_mode='html'
+        )
+
+        return
+
+    if KILLER_ALLOWED_USERS(target_user):
+
+        await event.reply(
+            premium_emoji(
+                "⚠️ <b>User Already Allowed</b>"
+            ),
+            parse_mode='html'
+        )
+
+        return
+
+    ADD_USER(target_user, credits)
+
+    await event.reply(
+
+        premium_emoji(
+
+            f"✅ <b>User Allowed</b>\n\n"
+            f"<blockquote>"
+            f"👤 User ID: <code>{target_user}</code>\n"
+            f"💠 Credits: {credits}"
+            f"</blockquote>"
+
+        ),
+
+        parse_mode='html'
+    )
 
 
-#disallow users to use killer command   
 @bot.on(events.NewMessage(pattern=r'/disallowkill'))
 async def disallow_kill(event):
 
+    owner_id = event.sender_id
+
+    if owner_id != OWNER_ID:
+
+        await event.reply(
+            premium_emoji(
+                "❌ <b>Access Denied</b>\n\n"
+                "Only owner can disallow users to use killer"
+            ),
+            parse_mode='html'
+        )
+
+        return
+
+    parts = event.message.text.strip().split()
+
+    if len(parts) != 2:
+
+        await event.reply(
+            premium_emoji(
+                "❌ <b>Invalid Command</b>\n\n"
+                "Use: /disallowkill userid"
+            ),
+            parse_mode='html'
+        )
+
+        return
+
+    try:
+
+        target_user = int(parts[1])
+
+    except:
+
+        await event.reply(
+            premium_emoji(
+                "❌ Invalid user id"
+            ),
+            parse_mode='html'
+        )
+
+        return
+
+    data = load_users()
+
+    uid = str(target_user)
+
+    if uid not in data:
+
+        await event.reply(
+            premium_emoji(
+                "⚠️ <b>User Not Found</b>"
+            ),
+            parse_mode='html'
+        )
+
+        return
+
+    del data[uid]
+
+    save_users(data)
+
+    await event.reply(
+
+        premium_emoji(
+
+            f"✅ <b>User Disallowed</b>\n\n"
+            f"<blockquote>"
+            f"👤 User ID: <code>{target_user}</code>"
+            f"</blockquote>"
+
+        ),
+
+        parse_mode='html'
+    )
+
+
+@bot.on(events.NewMessage(pattern=r'/credits'))
+async def credits_command(event):
+
     user_id = event.sender_id
 
-    if not user_id == OWNER_ID:
-        
-        await event.reply(premium_emoji("❌ <b>Access Denied</b>\n\nOnly owner can disallow users to use killer"), parse_mode='html')
+    if not KILLER_ALLOWED_USERS(user_id):
+
+        await event.reply(
+            premium_emoji(
+                "❌ <b>You Are Not Allowed To Use Killer</b>"
+            ),
+            parse_mode='html'
+        )
+
         return
 
-    if not len(event.message.text.split()) == 2:
-        await event.reply(premium_emoji("❌ <b>Invalid Command</b>\n\nUse: /disallowkill (userid)"), parse_mode='html')
-        return
+    credits = GET_USER_CREDITS(user_id)
 
-    if user_id in KILLER_ALLOWED_USERS:
+    await event.reply(
 
-        user_id = int(event.message.text.split()[1])
+        premium_emoji(
 
-        del KILLER_ALLOWED_USERS[user_id]
-        await event.reply(premium_emoji("✅ <b>User Disallowed</b>\n\nThis user can no longer use killer command"), parse_mode='html')
-    
-    else:
-        await event.reply(premium_emoji("⚠️ <b>User Not Found</b>"), parse_mode='html')
+            f"<b>⚡💳 #CREDITS 💳⚡</b>\n"
+            f"<b>━━━━━━━━━━━━━━━━━</b>\n"
+            f"<blockquote>"
+            f"👤 User ID: <code>{user_id}</code>\n"
+            f"💠 Credits: <b>{credits}</b>"
+            f"</blockquote>\n"
+            f"<b>━━━━━━━━━━━━━━━━━</b>"
 
+        ),
+
+        parse_mode='html'
+    )
 
 
 @bot.on(events.NewMessage(pattern=r'/paypal'))
@@ -1095,7 +1626,7 @@ async def paypal(event):
 
     active_session.append(user_id)
 
-    if not user_id in KILLER_ALLOWED_USERS:
+    if not KILLER_ALLOWED_USERS(user_id):
         # Rate limiting
         current_time = time.time()
         if user_id in user_check_times:
@@ -1110,6 +1641,7 @@ async def paypal(event):
 
 
     PAYPAL_API = 'https://strong-production.up.railway.app/paypal'
+    #PAYPAL_API = 'http://0.0.0.0:8000/paypal'
 
     __headers = {
 
@@ -1147,12 +1679,12 @@ async def paypal(event):
     )
 
     try:
-        result = session.post(PAYPAL_API, json={'num': num,
+        result = session.get(PAYPAL_API, json={'num': num,
                                                   'mon': mm,
                                                   'yer': yy,
-                                                  'cvc': cvv}, timeout=30).json()
+                                                  'cvc': cvv}, timeout=40).json()
         
-        print('response: ',result)
+        print('response: ', result)
 
         brand, bin_type, level, bank, country, flag = await get_bin_info(bin)
 
