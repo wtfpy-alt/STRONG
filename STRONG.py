@@ -2213,7 +2213,7 @@ STRIPE_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.3
 
 # ======================= API INTEGRATIONS =======================
 AUTOSHOPIFY_BASE = "https://autoshopify-40u1.onrender.com/shopify"
-STRIPE_API_BASE = "https://rzp-production-2493.up.railway.app/stripe_01"
+STRIPE_API_BASE = "https://stripe360-production.up.railway.app/stripe_01"
 SHOPIFY2_BASE = "https://haters.cxchk.site/shopii"
 SHOPIFY2_SITE = "https://keyesco.myshopify.com"
 SHOPIFY2_PROXY = "px051003.pointtoserver.com:10780:purevpn0s7397024:6CU9ZvexLGTqpB"
@@ -4448,7 +4448,7 @@ logging.basicConfig(level=logging.INFO)
 
 def st_check(card_details, username):
     """Blocking function to check card via Stripe API."""
-    url = f"https://rzp-production-2493.up.railway.app/stripe_01?auth=technopile&cc={card_details}"
+    url = f"https://stripe360-production.up.railway.app/stripe_01?auth=technopile&cc={card_details}"
     try:
         response = requests.get(url, timeout=15)  # Slightly longer timeout for reliability
         response.raise_for_status()
