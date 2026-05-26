@@ -16,3 +16,4 @@ uvicorn
 pydantic
 colorama
 faker
+telethon
