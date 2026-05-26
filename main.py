@@ -294,7 +294,7 @@ async def check_card(card: dict):
 async def paypal_single(card: CardRequest):
     """Check a single card - processes sequentially to avoid overlapping"""
     try:
-        result = await paypal(card.dict())
+        result = await check_card(card.model_dump())
         return CheckResponse(**result)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -305,7 +305,7 @@ async def check_batch(cards: list[CardRequest]):
     results = []
     
     for card in cards:
-        result = await check_card(card.dict())
+        result = await check_card(card.model_dump())
         results.append(result)
         time.sleep(random.randint(6, 10))  # Delay between checks
     
