@@ -1108,7 +1108,7 @@ async def paypal(event):
         user_check_times[user_id] = current_time
 
 
-    PAYPAL_API = 'https://strong-production.up.railway.app/check'
+    PAYPAL_API = 'https://strong-production.up.railway.app/paypal'
 
     __headers = {
 
