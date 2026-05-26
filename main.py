@@ -1403,20 +1403,20 @@ async def kill(event):
 
 
         final_resp = f"""<b>⚡💳 ㅤ#𝒮𝒽𝑜𝓅𝒾𝒾𝒾  💳⚡</b>
-                        <b>━━━━━━━━━━━━━━━━━</b>
-                        <b>⚡💠 𝐑𝐞𝐬𝐮𝐥𝐭𝐬</b>
-                        <blockquote>{status_emoji} Status: {status_text}</blockquote>
-                        <blockquote>💳 Card: <code>{result['card']}</code></blockquote>
-                        <blockquote>📝 Response: {result['message'][:150]}</blockquote>
+<b>━━━━━━━━━━━━━━━━━</b>
+<b>⚡💠 𝐑𝐞𝐬𝐮𝐥𝐭𝐬</b>
+<blockquote>{status_emoji} Status: {status_text}</blockquote>
+<blockquote>💳 Card: <code>{result['card']}</code></blockquote>
+<blockquote>📝 Response: {result['message'][:150]}</blockquote>
 
-                        <b>━━━━━━━━━━━━━━━━━</b>
-                        <b>🎯💠 𝐁𝐈𝐍 𝐈𝐧𝐟𝐨</b>
-                        <pre>𝗕𝗜𝗡 𝗜𝗻𝗳𝗼: {brand} - {bin_type} - {level}
-                        𝗕𝗮𝗻𝗸: {bank}
-                        𝗖𝗼𝘂𝗻𝘁𝗿𝘆: {country} {flag}</pre>
-                        <b>━━━━━━━━━━━━━━━━━</b>
+<b>━━━━━━━━━━━━━━━━━</b>
+<b>🎯💠 𝐁𝐈𝐍 𝐈𝐧𝐟𝐨</b>
+<pre>𝗕𝗜𝗡 𝗜𝗻𝗳𝗼: {brand} - {bin_type} - {level}
+𝗕𝗮𝗻𝗸: {bank}
+𝗖𝗼𝘂𝗻𝘁𝗿𝘆: {country} {flag}</pre>
+<b>━━━━━━━━━━━━━━━━━</b>
 
-                        🤖 <b>Bot By: @technopile </a></b>"""
+🤖 <b>Bot By: @technopile </a></b>"""
 
         await status_msg.edit(premium_emoji(final_resp), parse_mode='html')
 
