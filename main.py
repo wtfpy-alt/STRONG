@@ -1733,7 +1733,7 @@ async def mpaypal(event):
 
     active_session.append(user_id)
 
-    if not user_id in KILLER_ALLOWED_USERS:
+    if not KILLER_ALLOWED_USERS(user_id):
         
         await event.reply(premium_emoji(f"❌ Needs access from Admin"), parse_mode='html')
         return
