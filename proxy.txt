@@ -1,0 +1,4 @@
+https://proxy.sru.ac.th:8080:jantawan.ban:jantawan.ban
+https://quebec.oaza.rs:8899:p2s_proxy:oazaCentric
+https://proxy.ttu.edu.tw:3128:g10701005:j0i2m2
+https://px591203.pointtoserver.com:10780:purevpn0s12153504:1LTpwxbCJbEdXo
