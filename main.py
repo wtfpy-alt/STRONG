@@ -46,7 +46,7 @@ STRIPE_APIS = [
     "https://stripe360-production.up.railway.app/stripe_9",
 ]
 
-WORKERS_PER_API = 3
+WORKERS_PER_API = 5
 
 MAX_CONCURRENT = len(STRIPE_APIS) * WORKERS_PER_API
 
@@ -1001,7 +1001,7 @@ from collections import deque
 # CONFIG
 # =========================
 
-WORKERS = 7
+WORKERS = 5
 
 BATCH_SIZE = 5
 
@@ -1009,7 +1009,7 @@ MAX_RETRIES = 2
 
 TIMEOUT = 30
 
-EDIT_EVERY = 30
+EDIT_EVERY = 20
 
 # =========================
 # GLOBAL SESSION
