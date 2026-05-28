@@ -2145,7 +2145,8 @@ async def kill(event):
     
 
     try:
-        result = session.get(KILLER_API, params={'cc': card}, timeout=30).json()
+        async with session.get(KILLER_API, params={'cc': card}, timeout=30) as response:
+            result = await response.json()
 
 
         brand, bin_type, level, bank, country, flag = await get_bin_info(card.split('|')[0])
@@ -2436,10 +2437,11 @@ async def paypal(event):
     )
 
     try:
-        result = session.get(PAYPAL_API, json={'num': num,
+        async with session.get(PAYPAL_API, json={'num': num,
                                                   'mon': mm,
                                                   'yer': yy,
-                                                  'cvc': cvv}, timeout=40).json()
+                                                  'cvc': cvv}, timeout=40) as response:
+            result = await response.json()
         
         print('response: ', result)
 
@@ -2560,7 +2562,8 @@ async def mass_check_handler(event, gate):
         try:
             await asyncio.sleep(random.randint(6, 10))
             card_str = f"{card['num']}|{card['mon']}|{card['yer']}|{card['cvc']}"
-            result = session.post(api_url, json=card, timeout=40).json()
+            async with session.post(api_url, json=card, timeout=40) as response:
+                result = await response.json()
             msg = result.get('message', 'UNKNOWN')
             
             if 'CHARGED' in msg:
