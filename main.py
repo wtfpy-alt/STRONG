@@ -43,7 +43,6 @@ STRIPE_APIS = [
     "https://stripe360-production.up.railway.app/stripe_6",
     "https://stripe360-production.up.railway.app/stripe_7",
     "https://stripe360-production.up.railway.app/stripe_8",
-    "https://stripe360-production.up.railway.app/stripe_9",
 ]
 
 WORKERS_PER_API = 5
@@ -466,7 +465,6 @@ async def kill_card(num: str, mm: str, yy: str, cvv: str):
 
     api_template_12 = f'https://stripe360-production.up.railway.app/stripe_8?auth=WTFH4RSH&cc='
 
-    api_template_13 = f'https://stripe360-production.up.railway.app/stripe_9?auth=WTFH4RSH&cc='
 
 
 
@@ -484,7 +482,7 @@ async def kill_card(num: str, mm: str, yy: str, cvv: str):
         api_template_10,
         api_template_11,
         api_template_12,
-        api_template_13
+
     ]
 
     original_card = f"{num}|{mm}|{yy}|{cvv}"
